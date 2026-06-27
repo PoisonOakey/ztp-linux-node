@@ -21,7 +21,9 @@ ls -lh
 
 ## #2 Setup Virtual Machine
 Make sure you are clear with your VirtualBox directory:
-<img width="1277" height="706" alt="image" src="https://github.com/user-attachments/assets/d57c50c8-a366-4df4-8467-71972e0bab90" />
+<img width="1277" height="706" alt="image" src="https://github.com/user-attachments/assets/a070ec42-75ea-4c2a-b186-59b5714587bf" />
+<br>
+<br>
 
 Next, identify your Host Network Adapter from you bridged interfaces:
 ```
@@ -31,7 +33,12 @@ Next, identify your Host Network Adapter from you bridged interfaces:
 It should look something like this:
 > [!CAUTION]
 > **Make sure you never disclose it to anyone:**
-<img width="947" height="496" alt="image" src="https://github.com/user-attachments/assets/6e53d6fe-3706-4770-8cde-a952f00d1d5b" />
+<img width="947" height="496" alt="image" src="https://github.com/user-attachments/assets/ff0b729d-cd5a-4c46-8e06-7f2d508e562a" />
+<br>
+<br>
+
+Copy the name of the network adapter after ```Name: ```. In this case it would be ```Intel(R) Wi-Fi 6 AX201 160MHz```
+<br>
 
 Create the VM hardware architecture, assigning 4GB RAM and 2 CPU cores:
 ```
@@ -42,6 +49,14 @@ Create the VM hardware architecture, assigning 4GB RAM and 2 CPU cores:
 "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" modifyvm "SRE-Node-01" --memory 4096 --cpu 2
 ```
 
+Create a virtual NIC and bind it to your actual network adapter. Replace ```YOUR_COPIED_WIFI_NAME_HERE``` with the name of the network adapter name. 
+```
+# Enable virtual NIC and set it to bridged mode
+"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" modifyvm "SRE-Node-01" --nic1 bridged
+
+# Bind virtual NIC to actual network adapter
+"C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" modifyvm "SRE-Node-01" --bridgeadapter1 "YOUR_COPIED_WIFI_NAME_HERE"
+```
 
 
 
