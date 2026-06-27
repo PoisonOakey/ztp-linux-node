@@ -17,25 +17,21 @@ After finish downloading (around 2.6GB), verify it:
 ```
 ls -lh
 ```
+<br>
 
 ## #2 Setup Virtual Machine
 Make sure you are clear with your VirtualBox directory:
-
 <img width="1277" height="706" alt="image" src="https://github.com/user-attachments/assets/d57c50c8-a366-4df4-8467-71972e0bab90" />
-<br>
-<br>
-Next, identify your Host Network Adapter from you bridged interfaces:
 
+Next, identify your Host Network Adapter from you bridged interfaces:
 ```
 "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" list bridgedifs
 ```
-It should look something like this:
 
+It should look something like this:
 > [!CAUTION]
 > **Make sure you never disclose it to anyone:**
 <img width="947" height="496" alt="image" src="https://github.com/user-attachments/assets/6e53d6fe-3706-4770-8cde-a952f00d1d5b" />
-<br>
-<br>
 
 Create the VM hardware architecture, assigning 4GB RAM and 2 CPU cores:
 ```
