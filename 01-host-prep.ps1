@@ -1,13 +1,3 @@
-<#
-.SYNOPSIS
-Prepares a Windows Host for Oracle VirtualBox by disabling conflicting Type 1 hypervisors.
-
-.DESCRIPTION
-This script disables Windows Hyper-V, Virtual Machine Platform, and the Windows Hypervisor Platform. 
-It also modifies the bcdedit configuration to prevent hypervisor launch at boot, freeing VT-x extensions.
-Requires Administrator privileges and a system reboot.
-#>
-
 Write-Host "Starting Host Environment Preparation..." -ForegroundColor Cyan
 
 # 1. Disable Windows Optional Features
