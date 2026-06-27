@@ -58,7 +58,7 @@ It should look something like this:
 <br>
 <br>
 
-Copy the name of the network adapter after ```Name: ```. In this case it would be 
+Copy the name of the network adapter after ```Name: ```:
 ```
 Intel(R) Wi-Fi 6 AX201 160MHz
 ```
