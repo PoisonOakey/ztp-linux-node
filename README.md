@@ -1,5 +1,5 @@
 # Laptop-as-Server
-## 	:snail: Disable Conflicting Hyper-V Feautures
+## 	:bug: Disable Conflicting Hyper-V Feautures
 Open PowerShell as Adminstartor and run these commands. Otherwise it will cause the VM to hang when it's booting up.
 ```
 Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
@@ -20,7 +20,7 @@ Get-WindowsOptionalFeature -Online | Where-Object {$_.FeatureName -like "*HyperV
 ```
 <br>
 
-## #1 Quick Start
+## :seedling: Quick Start
 Install Oracle.Virtual Box using Git Bash (use ```apt``` on Ubuntu or ```brew``` on Mac):
 ```
 winget install -e --id Oracle.VirtualBox
@@ -40,7 +40,7 @@ ls -lh
 ```
 <br>
 
-## #2 Setup Virtual Machine
+## :butterfly: Setup Virtual Machine
 Make sure you are clear with your VirtualBox directory:
 <img width="1277" height="706" alt="image" src="https://github.com/user-attachments/assets/a070ec42-75ea-4c2a-b186-59b5714587bf" />
 <br>
@@ -94,7 +94,7 @@ Create a virtual hard drive and mount the Ubuntu ISO image:
 ```
 <br>
 
-## #3 Power On the Machine
+## 	:potted_plant: Power On the Machine
 Boot the VM system:
 ```
 "/c/Program Files/Oracle/VirtualBox/VBoxManage.exe" startvm "SRE-Node-01" --type gui
