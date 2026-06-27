@@ -1,4 +1,18 @@
 # Laptop-as-Server
+## #0 Disable Conflicting Feautures
+Open PowerShell as Adminstartor and run these commands. Otherwise it will cause the VM to hang when it's booting up.
+```
+# Disable Hyper-V
+Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
+
+# Disable the Windows Hypervisor Platform
+Disable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform
+
+# Disable Virtual Machine Platform
+Disable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform
+```
+<br>
+
 ## #1 Quick Start
 Install Oracle.Virtual Box using Git Bash (use ```apt``` on Ubuntu or ```brew``` on Mac):
 ```
