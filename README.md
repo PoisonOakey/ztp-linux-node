@@ -1,15 +1,22 @@
 # Laptop-as-Server
-## #0 Disable Conflicting Feautures
+## #0 Disable Conflicting Hyper-V Feautures
 Open PowerShell as Adminstartor and run these commands. Otherwise it will cause the VM to hang when it's booting up.
 ```
-# Disable Hyper-V
 Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
-
-# Disable the Windows Hypervisor Platform
 Disable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform
-
-# Disable Virtual Machine Platform
 Disable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform
+```
+However, Windows might attempt to load the configs at boot level. Thus, usie Boot Configuration Data (BCD) editor to disable them globally:
+```
+bcdedit /set hypervisorlaunchtype off
+```
+Restart the laptop:
+```
+Restart-Computer
+```
+Verify that the features are disabled:
+```
+Get-WindowsOptionalFeature -Online | Where-Object {$_.FeatureName -like "*HyperV*"} | Select-Object FeatureName, State
 ```
 <br>
 
