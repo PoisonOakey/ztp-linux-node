@@ -43,6 +43,7 @@ ls -lh
 ## :butterfly: Setup Virtual Machine
 Make sure you are clear with your VirtualBox directory:
 
+
 <img width="1277" height="706" alt="image" src="https://github.com/user-attachments/assets/a070ec42-75ea-4c2a-b186-59b5714587bf" />
 <br>
 <br>
@@ -98,6 +99,7 @@ Boot the VM system:
 ```
 
 A separate window will pop up. Use keyboard to select ```Try or Install Ubuntu Server``` in the GRUB bootloader:
+
 
 <img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/e4c1f1f2-33be-4594-b5d7-1bed85562ab4" />
 
