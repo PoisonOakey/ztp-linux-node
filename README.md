@@ -62,7 +62,6 @@ Copy the name of the network adapter after ```Name: ```:
 ```
 Intel(R) Wi-Fi 6 AX201 160MHz
 ```
-<br>
 
 Create the VM hardware architecture. Replace ```YOUR_COPIED_WIFI_NAME_HERE``` with the name of the network adapter name: :
 ```
