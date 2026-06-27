@@ -58,29 +58,26 @@ It should look something like this:
 <br>
 <br>
 
-Copy the name of the network adapter after ```Name: ```. In this case it would be ```Intel(R) Wi-Fi 6 AX201 160MHz```
+Copy the name of the network adapter after ```Name: ```. In this case it would be 
+```
+Intel(R) Wi-Fi 6 AX201 160MHz
+```
 <br>
 
-Create the VM hardware architecture, assigning 4GB RAM and 2 CPU cores:
+Create the VM hardware architecture. Replace ```YOUR_COPIED_WIFI_NAME_HERE``` with the name of the network adapter name: :
 ```
 # Create and reguster the VM shell
 "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" createvm --name "SRE-Node-01" --ostype "Ubuntu_64" --register
 
 # Modify the hardware allocation
 "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" modifyvm "SRE-Node-01" --memory 4096 --cpu 2
-```
 
-Create a virtual NIC and bind it to your actual network adapter. Replace ```YOUR_COPIED_WIFI_NAME_HERE``` with the name of the network adapter name: 
-```
 # Enable virtual NIC and set it to bridged mode
 "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" modifyvm "SRE-Node-01" --nic1 bridged
 
 # Bind virtual NIC to actual network adapter
 "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" modifyvm "SRE-Node-01" --bridgeadapter1 "YOUR_COPIED_WIFI_NAME_HERE"
-```
 
-Create a virtual hard drive and mount the Ubuntu ISO image:
-```
 # Create a 25GB virtual hard drive inside your server-lab folder
 "/c/Program Files/Oracle/VirtualBox/VBoxManage.exe" createmedium disk --filename ~/server-lab/SRE-Node-01.vdi --size 25600
 
