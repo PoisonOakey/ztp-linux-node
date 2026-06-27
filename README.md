@@ -2,7 +2,7 @@
 ## 	:bug: Disable Conflicting Hyper-V Feautures
 Open PowerShell as Adminstartor and run these commands. Otherwise it will cause the VM to hang when it's booting up.
 >[!TIP]
->Execute the cmnd line by line as 2 out of 3 will reboot your system. So don't panic!
+>_**Execute the cmnd line by line as 2 out of 3 will reboot your system. So don't panic!**_
 ```
 Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
 Disable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform
@@ -43,7 +43,7 @@ ls -lh
 <br>
 
 ## :butterfly: Setup Virtual Machine
-Make sure you are clear with your VirtualBox directory:
+Ensure that you are clear with your VirtualBox directory:
 
 
 <img width="1277" height="706" alt="image" src="https://github.com/user-attachments/assets/a070ec42-75ea-4c2a-b186-59b5714587bf" />
@@ -57,7 +57,7 @@ Next, identify your Host Network Adapter from you bridged interfaces:
 
 It should look something like this:
 > [!CAUTION]
-> **Make sure you never disclose it to anyone:**
+> _**Make sure you never disclose it to anyone:**_
 <img width="947" height="496" alt="image" src="https://github.com/user-attachments/assets/ff0b729d-cd5a-4c46-8e06-7f2d508e562a" />
 <br>
 <br>
