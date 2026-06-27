@@ -49,7 +49,7 @@ Create the VM hardware architecture, assigning 4GB RAM and 2 CPU cores:
 "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" modifyvm "SRE-Node-01" --memory 4096 --cpu 2
 ```
 
-Create a virtual NIC and bind it to your actual network adapter. Replace ```YOUR_COPIED_WIFI_NAME_HERE``` with the name of the network adapter name. 
+Create a virtual NIC and bind it to your actual network adapter. Replace ```YOUR_COPIED_WIFI_NAME_HERE``` with the name of the network adapter name: 
 ```
 # Enable virtual NIC and set it to bridged mode
 "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" modifyvm "SRE-Node-01" --nic1 bridged
@@ -57,6 +57,30 @@ Create a virtual NIC and bind it to your actual network adapter. Replace ```YOUR
 # Bind virtual NIC to actual network adapter
 "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" modifyvm "SRE-Node-01" --bridgeadapter1 "YOUR_COPIED_WIFI_NAME_HERE"
 ```
+
+Create a virtual hard drive and mount the Ubuntu ISO image:
+```
+# Create a 25GB virtual hard drive inside your server-lab folder
+"/c/Program Files/Oracle/VirtualBox/VBoxManage.exe" createmedium disk --filename ~/server-lab/SRE-Node-01.vdi --size 25600
+
+# Add a SATA storage controller and attach your virtual hard drive
+"/c/Program Files/Oracle/VirtualBox/VBoxManage.exe" storagectl "SRE-Node-01" --name "SATA Controller" --add sata --controller IntelAHCI
+"/c/Program Files/Oracle/VirtualBox/VBoxManage.exe" storageattach "SRE-Node-01" --storagectl "SATA Controller" --port 0 --device 0 --type hdd --medium ~/server-lab/SRE-Node-01.vdi
+
+# Add an IDE storage controller and mount the Ubuntu Server ISO file
+"/c/Program Files/Oracle/VirtualBox/VBoxManage.exe" storagectl "SRE-Node-01" --name "IDE Controller" --add ide
+"/c/Program Files/Oracle/VirtualBox/VBoxManage.exe" storageattach "SRE-Node-01" --storagectl "IDE Controller" --port 0 --device 0 --type dvddrive --medium ~/server-lab/ubuntu-24.04.4-live-server-amd64.iso
+```
+<br>
+
+## #3 Power On the Machine
+Boot the VM system:
+```
+"/c/Program Files/Oracle/VirtualBox/VBoxManage.exe" startvm "SRE-Node-01" --type gui
+```
+
+A separate window will pop up. Use keyboard to select ```Try or Install Ubuntu Server``` in the GRUB bootloader:
+<img width="1920" height="1080" alt="image" src="https://github.com/user-attachments/assets/e4c1f1f2-33be-4594-b5d7-1bed85562ab4" />
 
 
 
