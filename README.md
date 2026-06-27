@@ -1,5 +1,5 @@
 # Laptop-as-Server
-## #0 Disable Conflicting Hyper-V Feautures
+## 	:snail: Disable Conflicting Hyper-V Feautures
 Open PowerShell as Adminstartor and run these commands. Otherwise it will cause the VM to hang when it's booting up.
 ```
 Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
