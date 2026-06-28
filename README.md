@@ -5,7 +5,11 @@ Open PowerShell as Adminstartor and run these commands. Otherwise it will cause 
 >_**Execute the cmnd line by line as 2 out of 3 will reboot your system. So don't panic!**_
 ```
 Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
+```
+```
 Disable-WindowsOptionalFeature -Online -FeatureName HypervisorPlatform
+```
+```
 Disable-WindowsOptionalFeature -Online -FeatureName VirtualMachinePlatform
 ```
 However, Windows might attempt to load the configs at boot level. Thus, usie Boot Configuration Data (BCD) editor to disable them globally:
