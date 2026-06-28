@@ -1,8 +1,8 @@
 # Laptop-as-Server
 ## 	:bug: Disable Conflicting Hyper-V Feautures
-**Open PowerShell** as Adminstartor and disable the Hyper-V features. Otherwise it will cause the VM to freeze.
+_**Open PowerShell**_ as Adminstartor and disable the Hyper-V features. Otherwise it will cause the VM to freeze.
 >[!TIP]
->_**Execute the cmnd line by line as 2 out of 3 will reboot your system. So don't panic!**_
+>**Execute the cmnd line by line as 2 out of 3 will reboot your system. So don't panic!**
 ```
 Disable-WindowsOptionalFeature -Online -FeatureName Microsoft-Hyper-V-All
 ```
@@ -27,7 +27,7 @@ Get-WindowsOptionalFeature -Online | Where-Object {$_.FeatureName -like "*HyperV
 <br>
 
 ## :seedling: Quick Start
-**Open Git Bash** and install Oracle. (use ```apt``` on Ubuntu or ```brew``` on Mac):
+_**Open Git Bash**_ and install Oracle. (use ```apt``` on Ubuntu or ```brew``` on Mac):
 ```
 winget install -e --id Oracle.VirtualBox
 ```
@@ -61,7 +61,7 @@ Next, identify your Host Network Adapter from you bridged interfaces:
 
 It should look something like this:
 > [!CAUTION]
-> _**Make sure you never disclose it to anyone:**_
+> **Make sure you never disclose it to anyone:**
 <img width="947" height="496" alt="image" src="https://github.com/user-attachments/assets/ff0b729d-cd5a-4c46-8e06-7f2d508e562a" />
 <br>
 <br>
