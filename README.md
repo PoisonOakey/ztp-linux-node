@@ -1,6 +1,6 @@
 # Laptop-as-Server
 ## 	:bug: Disable Conflicting Hyper-V Feautures
-Open PowerShell as Adminstartor and run these commands. Otherwise it will cause the VM to hang when it's booting up.
+Open PowerShell as Adminstartor and disable rge Hyper-V features. Otherwise it will cause the VM to freeze.
 >[!TIP]
 >_**Execute the cmnd line by line as 2 out of 3 will reboot your system. So don't panic!**_
 ```
