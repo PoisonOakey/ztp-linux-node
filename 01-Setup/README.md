@@ -1,4 +1,4 @@
-# Laptop-as-Server
+# Step #1: Setup
 ## 	:bug: Disable Conflicting Hyper-V Feautures
 _**Open PowerShell**_ as Adminstartor and disable the Hyper-V features. Otherwise it will cause the VM to freeze.
 >[!TIP]
