@@ -27,7 +27,7 @@ Get-WindowsOptionalFeature -Online | Where-Object {$_.FeatureName -like "*HyperV
 <br>
 
 ## :seedling: Quick Start
-Install Oracle.Virtual Box using Git Bash (use ```apt``` on Ubuntu or ```brew``` on Mac):
+Open Git Bash and install Oracle. (use ```apt``` on Ubuntu or ```brew``` on Mac):
 ```
 winget install -e --id Oracle.VirtualBox
 ```
