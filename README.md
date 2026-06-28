@@ -1,6 +1,6 @@
 # Laptop-as-Server
 ## 	:bug: Disable Conflicting Hyper-V Feautures
-Open PowerShell as Adminstartor and disable rge Hyper-V features. Otherwise it will cause the VM to freeze.
+**Open PowerShell** as Adminstartor and disable the Hyper-V features. Otherwise it will cause the VM to freeze.
 >[!TIP]
 >_**Execute the cmnd line by line as 2 out of 3 will reboot your system. So don't panic!**_
 ```
@@ -27,7 +27,7 @@ Get-WindowsOptionalFeature -Online | Where-Object {$_.FeatureName -like "*HyperV
 <br>
 
 ## :seedling: Quick Start
-Open Git Bash and install Oracle. (use ```apt``` on Ubuntu or ```brew``` on Mac):
+**Open Git Bash** and install Oracle. (use ```apt``` on Ubuntu or ```brew``` on Mac):
 ```
 winget install -e --id Oracle.VirtualBox
 ```
