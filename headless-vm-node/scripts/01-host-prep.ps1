@@ -28,7 +28,7 @@ if (-not $isAdmin) {
     exit 1
 }
 
-Write-Output "Starting Stage 0: Host Environment Preparation..."
+Write-Output "Starting Stage 1: Host Environment Preparation..."
 
 # ==============================================================================
 # 1. HARDWARE LAYER: Disable Conflicting Windows Features
@@ -45,27 +45,34 @@ foreach ($feature in $features) {
             Disable-WindowsOptionalFeature -Online -FeatureName $feature -NoRestart -ErrorAction Stop | Out-Null
             Write-Output "   [OK] Disabled: $feature"
             $requiresRestart = $true
-        } else {
+        }
+        else {
             Write-Output "   [OK] Already disabled: $feature"
         }
-    } catch {
+    }
+    catch {
         Write-Warning "   [!] Could not check or modify feature $feature. It might not be available on this OS edition."
     }
 }
 
 try {
+    # Resolve bcdedit path (handle 32-bit PowerShell on 64-bit OS)
+    $bcdeditPath = if (Test-Path "$env:windir\sysnative\bcdedit.exe") { "$env:windir\sysnative\bcdedit.exe" } else { "$env:windir\System32\bcdedit.exe" }
+
     # Check current BCD state to be idempotent
-    $bcdState = bcdedit /enum '{current}' | Select-String "hypervisorlaunchtype"
+    $bcdState = & $bcdeditPath /enum "{current}" | Select-String "hypervisorlaunchtype"
     if ($bcdState -match "Off") {
         Write-Output "   [OK] BCD hypervisor launch type is already disabled."
-    } else {
+    }
+    else {
         Write-Output "   [*] Disabling BCD hypervisor launch type..."
-        bcdedit /set hypervisorlaunchtype off | Out-Null
+        & $bcdeditPath /set hypervisorlaunchtype off | Out-Null
         Write-Output "   [OK] BCD hypervisor launch type disabled."
         $requiresRestart = $true
     }
-} catch {
-    Write-Warning "   [!] Failed to modify BCD hypervisorlaunchtype."
+}
+catch {
+    Write-Warning "   [!] Failed to modify BCD hypervisorlaunchtype: $($_.Exception.Message)"
 }
 
 # ==============================================================================
@@ -75,13 +82,15 @@ Write-Output "`n-> Checking for Oracle VirtualBox installation..."
 
 if (Get-Command "VBoxManage.exe" -ErrorAction SilentlyContinue) {
     Write-Output "   [OK] Oracle VirtualBox is already installed and in PATH."
-} else {
+}
+else {
     Write-Output "   [*] Installing VirtualBox via winget..."
     try {
         # Using winget to silently install or update VirtualBox
         winget install -e --id Oracle.VirtualBox --accept-package-agreements --accept-source-agreements --silent
         Write-Output "   [OK] Oracle VirtualBox installed."
-    } catch {
+    }
+    catch {
         Write-Error "   [X] Failed to install VirtualBox. Please install it manually."
         exit 1
     }
@@ -109,14 +118,17 @@ if (-not (Test-Path -Path $IsoPath)) {
         curl.exe -O -L --output-dir $LabDir $IsoUrl
         if ($LASTEXITCODE -eq 0) {
             Write-Output "   [OK] Download complete."
-        } else {
+        }
+        else {
             throw "curl.exe exited with code $LASTEXITCODE"
         }
-    } catch {
+    }
+    catch {
         Write-Error "   [X] Failed to download ISO: $_"
         exit 1
     }
-} else {
+}
+else {
     Write-Output "   [OK] $IsoFileName already exists. Skipping download."
 }
 
@@ -126,8 +138,9 @@ if (-not (Test-Path -Path $IsoPath)) {
 Write-Output "`n=================================================="
 Write-Output "Host preparation complete."
 if ($requiresRestart) {
-    Write-Output "CRITICAL: Hyper-V features were modified. A system restart is REQUIRED before running Stage 1."
+    Write-Output "CRITICAL: Hyper-V features were modified. A system restart is REQUIRED before running Stage 2."
     Write-Output "Please restart your computer now."
-} else {
-    Write-Output "System is ready for Stage 1. No restart required."
+}
+else {
+    Write-Output "System is ready for Stage 2. No restart required."
 }

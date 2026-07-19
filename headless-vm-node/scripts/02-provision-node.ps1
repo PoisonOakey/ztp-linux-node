@@ -27,7 +27,7 @@ param (
 
 $ErrorActionPreference = 'Stop'
 
-Write-Output "Starting Stage 1: Node Provisioning for $VmName..."
+Write-Output "Starting Stage 2: Node Provisioning for $VmName..."
 
 # Resolve VBoxManage Path
 $VBoxManage = "VBoxManage.exe"
@@ -58,7 +58,7 @@ if ($existingVms -match "`"$VmName`"") {
 
 # Network Adapter Auto-Detection
 Write-Output "`n-> Detecting active network adapters for bridging..."
-$activeAdapters = Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.Virtual -eq $false }
+$activeAdapters = @(Get-NetAdapter | Where-Object { $_.Status -eq 'Up' -and $_.Virtual -eq $false })
 if (-not $activeAdapters) {
     Write-Error "No active physical network adapters found to bridge."
     exit 1
@@ -88,7 +88,7 @@ $IsoPath = Join-Path $LabDir $IsoName
 $DiskPath = Join-Path $LabDir "$VmName.vdi"
 
 if (-not (Test-Path $IsoPath)) {
-    Write-Error "ISO file not found at $IsoPath. Please run Stage 0 first."
+    Write-Error "ISO file not found at $IsoPath. Please run Stage 1 first."
     exit 1
 }
 
