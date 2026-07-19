@@ -13,6 +13,8 @@ This script prepares your Windows host for VirtualBox virtualization by disablin
 > [!CAUTION]
 > **This script requires Administrator privileges.**
 > If any Hyper-V features are disabled during this step, a system restart is required before proceeding to Stage 1.
+> 
+> **CRITICAL ISO WARNING**: This script downloads a 3.4 GB Ubuntu ISO. If the download is interrupted, it may result in a partially downloaded ISO that will cause the automated installation in Stage 2 to fail with an `Input/output error`. Always verify the ISO downloaded completely! See [TROUBLESHOOTING.md](file:///d:/headless-vm-node/TROUBLESHOOTING.md) for details.
 
 **Open PowerShell as Administrator** and execute:
 ```powershell
@@ -30,10 +32,40 @@ This script provisions the VirtualBox VM, configures the network bridge, creates
 .\scripts\02-provision-node.ps1
 ```
 
+### 🤖 Stage 2: Automated OS Installation
+
+This script injects a `cloud-init` configuration into the VM using a temporary virtual disk, completely automating the Ubuntu Server setup process without any manual GUI interaction.
+
+> [!CAUTION]
+> **This script requires Administrator privileges.**
+> The script needs to mount a temporary virtual disk to inject the configuration.
+
+**Open PowerShell as Administrator** and execute:
+```powershell
+.\scripts\03-autoinstall-node.ps1
+```
+
 > [!TIP]
-> **OS Installation**
-> By default, the script provisions the VM architecture. To complete the Ubuntu Server installation, you will need to boot the VM in GUI mode for the very first time:
-> ```powershell
-> & "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" startvm "SRE-Node-01" --type gui
-> ```
-> Follow the on-screen prompts to install Ubuntu Server. Once installed, you can shut it down and boot it headlessly in the future.
+> **Background Installation**
+> The VM will boot headlessly in the background. Depending on your internet speed, the installation usually takes 5-10 minutes.
+> Once the installation is complete, the VM will **automatically power off**.
+
+You can check the installation progress by querying the VM's state. When it says `powered off`, the installation is complete:
+```powershell
+& "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" showvminfo "SRE-Node-01" | Select-String "State"
+```
+
+<br>
+
+### 🔌 Stage 3: Connecting to the Node
+
+Once the automated installation is finished and the VM is powered off, you can use the connection script. This script will boot the VM headlessly, automatically query VirtualBox for the dynamically assigned IP address, and provide you with the SSH command.
+
+**Open PowerShell** and execute:
+```powershell
+.\scripts\04-connect-node.ps1
+```
+
+Once connected, you can start using your new server!
+- **Default Username:** `sysadmin`
+- **Default Password:** `sysadmin`

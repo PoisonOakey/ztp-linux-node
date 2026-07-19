@@ -107,7 +107,8 @@ Write-Output "-> Bridging network interface to '$BridgeAdapter'..."
 # 4. Provision Storage and Mount Media
 if (Test-Path $DiskPath) {
     Write-Output "-> Removing existing stale VDI disk..."
-    Remove-Item -Path $DiskPath -Force
+    & $VBoxManage closemedium disk $DiskPath --delete 2>$null
+    if (Test-Path $DiskPath) { Remove-Item -Path $DiskPath -Force }
 }
 
 Write-Output "-> Provisioning ${DiskSizeMb}MB Storage Drive..."
@@ -123,10 +124,8 @@ Write-Output "-> Attaching IDE Controller and Mounting ISO..."
 
 # 5. Provide next steps (Booting headless by default, but warning about OS install)
 Write-Output "`n=================================================="
+Write-Output "`n=================================================="
 Write-Output "Deployment triggered successfully."
-Write-Output "NOTE: To complete the Ubuntu Server installation, you should boot it with a GUI first:"
-Write-Output "    & `"$VBoxManage`" startvm `"$VmName`" --type gui"
-Write-Output "Or if using an autoinstall ISO, you can boot it headlessly:"
-Write-Output "    & `"$VBoxManage`" startvm `"$VmName`" --type headless"
-Write-Output "Once the OS is installed, you can find its IP by checking your router or running:"
-Write-Output "    & `"$VBoxManage`" guestproperty enumerate `"$VmName`""
+Write-Output "To complete the automated headless OS installation, please run:"
+Write-Output "    .\scripts\03-autoinstall-node.ps1"
+Write-Output "=================================================="
