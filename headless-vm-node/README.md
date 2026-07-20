@@ -1,8 +1,8 @@
 # Headless VM Node
 
 >This ia an automated sysops repository for bootstrapping a headless VirtualBox Ubuntu Server node on a Windows host.
-
-This setup process has been automated using PowerShell scripts to ensure idempotency and sysops best practices. All scripts are located in the `scripts/` directory.
+>
+>This setup process has been automated using PowerShell scripts to ensure idempotency and sysops best practices. All scripts are located in the `scripts/` directory.
 
 ---
 
