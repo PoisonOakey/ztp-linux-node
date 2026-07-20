@@ -1,14 +1,12 @@
 # Headless VM Node
 
-Automated sysops repository for bootstrapping a headless VirtualBox Ubuntu Server node on a Windows host.
-
-## Quick Start
+>This ia an automated sysops repository for bootstrapping a headless VirtualBox Ubuntu Server node on a Windows host.
 
 This setup process has been automated using PowerShell scripts to ensure idempotency and sysops best practices. All scripts are located in the `scripts/` directory.
 
-<br>
+---
 
-### 🪟 Stage 0: Host Environment Preparation
+## 🪟 Stage 0: Host Environment Preparation
 
 This script prepares your Windows host for VirtualBox virtualization by disabling conflicting Hyper-V features, installing VirtualBox via `winget`, and downloading the Ubuntu Server ISO.
 
@@ -23,9 +21,9 @@ This script prepares your Windows host for VirtualBox virtualization by disablin
 .\scripts\01-host-prep.ps1
 ```
 
-<br>
+---
 
-### 🚀 Stage 1: Node Provisioning
+## 🚀 Stage 1: Node Provisioning
 
 This script provisions the VirtualBox VM, configures the network bridge, creates the virtual disk, and attaches the Ubuntu Server ISO. It will automatically detect your active physical network adapter, or prompt you to select one if multiple are found.
 
@@ -34,9 +32,9 @@ This script provisions the VirtualBox VM, configures the network bridge, creates
 .\scripts\02-provision-node.ps1
 ```
 
-<br>
+---
 
-### 🤖 Stage 2: Automated OS Installation
+## 🤖 Stage 2: Automated OS Installation
 
 This script injects a `cloud-init` configuration into the VM using a temporary virtual disk, completely automating the Ubuntu Server setup process without any manual GUI interaction.
 
@@ -59,9 +57,9 @@ You can check the installation progress by querying the VM's state. When it says
 & "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe" showvminfo "SRE-Node-01" | Select-String "State"
 ```
 
-<br>
+---
 
-### 🔌 Stage 3: Connecting to the Node
+## 🔌 Stage 3: Connecting to the Node
 
 Once the automated installation is finished and the VM is powered off, you can use the connection script. This script will boot the VM headlessly, automatically query VirtualBox for the dynamically assigned IP address, and provide you with the SSH command.
 
@@ -73,3 +71,5 @@ Once the automated installation is finished and the VM is powered off, you can u
 Once connected, you can start using your new server!
 - **Default Username:** `sysadmin`
 - **Default Password:** `sysadmin`
+
+---
