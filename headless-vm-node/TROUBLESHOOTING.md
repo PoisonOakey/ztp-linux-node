@@ -1,6 +1,6 @@
 # Troubleshooting Guide
 
-This document captures the known issues, edge cases, and sysops debugging efforts encountered while building this automated VirtualBox provisioner. If you run into bizarre behavior during the installation, check here first.
+>This document captures the known issues, edge cases, and sysops debugging efforts encountered while building this automated VirtualBox provisioner. If you run into bizarre behavior during the installation, check here first.
 
 ---
 
