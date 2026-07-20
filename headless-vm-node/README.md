@@ -6,6 +6,8 @@ Automated sysops repository for bootstrapping a headless VirtualBox Ubuntu Serve
 
 This setup process has been automated using PowerShell scripts to ensure idempotency and sysops best practices. All scripts are located in the `scripts/` directory.
 
+<br>
+
 ### 🪟 Stage 0: Host Environment Preparation
 
 This script prepares your Windows host for VirtualBox virtualization by disabling conflicting Hyper-V features, installing VirtualBox via `winget`, and downloading the Ubuntu Server ISO.
@@ -31,6 +33,8 @@ This script provisions the VirtualBox VM, configures the network bridge, creates
 ```powershell
 .\scripts\02-provision-node.ps1
 ```
+
+<br>
 
 ### 🤖 Stage 2: Automated OS Installation
 
