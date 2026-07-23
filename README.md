@@ -22,7 +22,6 @@ I wanted to repurpose an old Windows laptop with a broken screen into a headless
 ---
 
 ## 🛠️ Architecture & Workflow
-
 ```mermaid
 %%{init: {'themeVariables': { 'background': '#ffffff'}}}%%
 flowchart TD
@@ -46,8 +45,6 @@ flowchart TD
 
     C --> D
 ```
-
-<br>
 
 | Layer | Technology | Role |
 |---|---|---|
