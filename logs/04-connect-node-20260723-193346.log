@@ -1,0 +1,35 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260723193346
+Username: MSI\USER
+RunAs User: MSI\USER
+Configuration Name: 
+Machine: MSI (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 21964
+PSVersion: 5.1.26100.8894
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.8894
+BuildVersion: 10.0.26100.8894
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is D:\vm-project\scripts\..\logs\04-connect-node-20260723-193346.log
+Querying VM for IP Address (requires Guest Additions / VM Network to be fully up)...
+Found cached IP: 192.168.100.34
+
+==================================================
+[OK] VM is actively running at IP: 192.168.100.34
+You can now connect to your headless node!
+Run the following command:
+
+    ssh sysadmin@192.168.100.34
+
+(Default password is 'sysadmin')
+==================================================
+**********************
+Windows PowerShell transcript end
+End time: 20260723193346
+**********************
