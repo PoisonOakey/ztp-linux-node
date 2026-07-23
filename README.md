@@ -6,18 +6,30 @@
 
 ## 🚀 What I Built
 
-A sysops automation pipeline that transforms an old, unused Windows laptop into a fully functional, headless Linux home server in under 10 minutes. 
+An Infrastructure-as-Code (IaC) pipeline that transforms a broken-screen Windows laptop into a headless Linux home server in under 10 minutes.
 
-**One single command** orchestrates the entire lifecycle: downloading the OS, provisioning the hypervisor, executing a 100% headless unattended installation, configuring networking, establishing a secure VPN, and deploying a containerized monitoring stack.
+**One single command** handles the entire lifecycle: hypervisor provisioning, unattended OS installation, VPN routing, and Docker stack deployment.
 
 ---
 
 ## 🛑 The Problem
 
-I wanted to repurpose an old Windows laptop with a broken screen into a headless home server accessible via iPad/phone. However:
-- **No Screen:** Manually setting up a VM requires a working screen to click through OS GUI installers.
-- **Wi-Fi Bridging Packet Drops:** VirtualBox bridged networking over Wi-Fi is notoriously unstable, causing "dial-up" speeds and massive packet loss.
-- **Remote Access:** Reaching the server from a phone/iPad typically requires complex, insecure router port forwarding.
+- **Broken hardware:** Repurposing a laptop with a broken screen required a 100% headless VM installation
+- **Unstable networking:** VirtualBox bridged Wi-Fi adapters suffer from massive packet loss
+- **Remote access:** Securely reaching the server from outside the network usually requires insecure router port-forwarding
+
+
+---
+
+## 🧠 Key Engineering Decisions
+
+| Area | Detail |
+|---|---|
+| **Zero-Touch Provisioning** | Injected `debconf_selections` via Cloud-Init to force 100% headless OS installations |
+| **Network Virtualization** | NAT topology + `virtio` drivers fixed bridged Wi-Fi packet drops (5 Mbps → 800+ Mbps) |
+| **Resilient Orchestration** | PowerShell state-checking and `dpkg` auto-repair ensure the pipeline self-heals from interruptions |
+| **Process Bypasses** | Dynamic `$env:WINDIR\sysnative` bypasses 32-bit Windows redirection for native 64-bit SSH execution |
+| **Zero-Trust Access** | Tailscale mesh VPN enables secure, instant remote access without complex router port-forwarding |
 
 ---
 
@@ -88,18 +100,6 @@ ztp-homelab/
 │
 └── logs/                               # Auto-generated execution transcripts
 ```
----
-
-## 🧠 Key Engineering Decisions
-
-| Challenge | Engineering Solution |
-|---|---|
-| **Wi-Fi Bridging Packet Drops** | VirtualBox Bridged adapters drop packets on old Wi-Fi cards. Switched to a **NAT topology with `virtio` drivers** and automated localhost Port Forwarding. |
-| **Interactive OS Install Prompts** | Ubuntu Server halts to ask where to install GRUB. Injected **`debconf_selections` via Cloud-Init** to force a completely headless installation. |
-| **32-bit PowerShell Execution** | Windows silently redirects 32-bit processes, breaking SSH. Implemented **dynamic `$env:WINDIR\sysnative` path resolution** to guarantee execution. |
-| **Silent `sudo` Failures** | Background SSH scripts crash when `sudo` requires a password. Added the **`-t` pseudo-TTY flag** to SSH commands to securely pass interactive prompts. |
-| **Package Manager Lockups** | Interruptions corrupt the `apt` state. Added a **`dpkg --configure -a` fail-safe** to self-heal package managers before Docker installation. |
-
 ---
 
 ## ⚡ Execution
