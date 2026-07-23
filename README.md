@@ -1,4 +1,4 @@
-# Automated Headless Home Server
+# Zero-Touch Provisioning (ZTP) Homelab Automation
 
 > A fully automated Infrastructure-as-Code (IaC) pipeline that provisions, configures, and secures a headless Ubuntu Server node via VirtualBox on a Windows host.
 
@@ -23,14 +23,18 @@ I wanted to repurpose an old Windows laptop with a broken screen into a headless
 
 ## 🛠️ Architecture & Workflow
 
-```mermaid
-flowchart LR
-    A[Stage 0: Host Prep] --> B[Stage 1: VM Provisioning]
-    B --> C[Stage 2: OS Installation]
-    C --> D[Stage 3: Connect SSH]
-    D --> E[Phase 2: Tailscale]
-    E --> F[Phase 3: Monitoring]
+```test
+┌──────────────────────┐      ┌────────────────────────┐      ┌──────────────────────┐
+│ Stage 0: Host Prep   │ ───▶ │ Stage 1: VM Provision  │ ───▶ │ Stage 2: OS Install  │
+└──────────────────────┘      └────────────────────────┘      └──────────┬───────────┘
+                                                                         │
+                                                                         ▼
+┌──────────────────────┐      ┌────────────────────────┐      ┌──────────────────────┐
+│ Phase 3: Monitoring  │ ◀─── │ Phase 2: Tailscale     │ ◀─── │ Stage 3: Connect SSH │
+└──────────────────────┘      └────────────────────────┘      └──────────────────────┘
 ```
+
+<br>
 
 | Layer | Technology | Role |
 |---|---|---|
