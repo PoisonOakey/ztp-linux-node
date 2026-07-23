@@ -1,0 +1,345 @@
+﻿**********************
+Windows PowerShell transcript start
+Start time: 20260723192052
+Username: MSI\USER
+RunAs User: MSI\USER
+Configuration Name: 
+Machine: MSI (Microsoft Windows NT 10.0.26200.0)
+Host Application: C:\Windows\SysWOW64\WindowsPowerShell\v1.0\powershell.exe
+Process ID: 21964
+PSVersion: 5.1.26100.8894
+PSEdition: Desktop
+PSCompatibleVersions: 1.0, 2.0, 3.0, 4.0, 5.0, 5.1.26100.8894
+BuildVersion: 10.0.26100.8894
+CLRVersion: 4.0.30319.42000
+WSManStackVersion: 3.0
+PSRemotingProtocolVersion: 2.3
+SerializationVersion: 1.1.0.1
+**********************
+Transcript started, output file is D:\vm-project\scripts\..\logs\05-setup-tailscale-20260723-192052.log
+Querying VM for IP Address...
+Found cached IP: 192.168.100.34
+
+==================================================
+Connecting to VM to install Tailscale.
+When prompted, enter the password (default: 'sysadmin')
+After installation, look for the 'tailscale up' authentication link in the output!
+==================================================
+PS>TerminatingError(): "The term 'C:\Windows\System32\OpenSSH\ssh.exe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again."
+>> TerminatingError(): "The term 'C:\Windows\System32\OpenSSH\ssh.exe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again."
+>> TerminatingError(): "The term 'C:\Windows\System32\OpenSSH\ssh.exe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again."
+The term 'C:\Windows\System32\OpenSSH\ssh.exe' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the spelling of the name, or if a path was included, verify that the path is correct and try again.
+C:\Windows\System32\OpenSSH\ssh.exe : The term 'C:\Windows\System32\OpenSSH\ssh.exe' is not
+recognized as the name of a cmdlet, function, script file, or operable program. Check the
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At D:\vm-project\scripts\05-setup-tailscale.ps1:63 char:1
++ C:\Windows\System32\OpenSSH\ssh.exe -o StrictHostKeyChecking=no sysad ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : ObjectNotFound: (C:\Windows\System32\OpenSSH\ssh.exe:String) [],
+   ParentContainsErrorRecordException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+[38;2;243;174;53m[0m[48;2;243;174;53m[38;2;38;43;68m USER [0m[38;2;243;174;53m[0m[0m[38;2;240;118;35;49m[7m[0m[48;2;240;118;35m[38;2;224;222;244m  ]8;;file:D:/vm-project\vm-project]8;;\ [0m[38;2;240;118;35m[0m[0m[38;2;216;30;91;49m[7m[0m[48;2;216;30;91m[38;2;224;222;244m  [0m[38;2;216;30;91m[0m]0;pwsh in vm-project 7                                                [38;2;224;222;244min [38;2;75;149;233m[1mpwsh[22m[38;2;224;222;244m [0m[38;2;224;222;244mat [38;2;75;149;233m[1m19:20:52[22m[0m8
+PS>.\Deploy-Node.ps1
+==================================================
+ðŸš€ INITIATING MASTER DEPLOYMENT PIPELINE ðŸš€
+==================================================
+WARNING: VM 'SRE-Node-01' already exists!
+
+[OK] Skipping Infrastructure Provisioning (Stages 01-03)...
+Jumping straight to Configuration Management (Stages 04-06).
+
+>>> Executing Stage 04: Connect Node (Booting VM)...
+Transcript started, output file is D:\vm-project\scripts\..\logs\04-connect-node-20260723-192453.log
+Querying VM for IP Address (requires Guest Additions / VM Network to be fully up)...
+Attempting automated ARP discovery...
+Found VM MAC Address: 08-00-27-ac-49-22
+Triggering VM to ping host (169.254.119.47) to populate ARP cache...
+
+
+
+
+
+
+
+Waiting for ARP table to update...
+Successfully discovered IP via ARP: 192.168.100.34
+
+==================================================
+[OK] VM is actively running at IP: 192.168.100.34
+You can now connect to your headless node!
+Run the following command:
+
+    ssh sysadmin@192.168.100.34
+
+(Default password is 'sysadmin')
+==================================================
+Transcript stopped, output file is D:\vm-project\logs\04-connect-node-20260723-192453.log
+Waiting 15 seconds for SSH daemon to initialize...
+
+>>> Executing Stage 05: Tailscale Setup...
+Transcript started, output file is D:\vm-project\scripts\..\logs\05-setup-tailscale-20260723-192520.log
+Querying VM for IP Address...
+Found cached IP: 192.168.100.34
+
+==================================================
+Connecting to VM to install Tailscale.
+When prompted, enter the password (default: 'sysadmin')
+After installation, look for the 'tailscale up' authentication link in the output!
+==================================================
+
+Transcript stopped, output file is D:\vm-project\logs\05-setup-tailscale-20260723-192520.log
+
+>>> Executing Stage 06: Monitoring Setup...
+Transcript started, output file is D:\vm-project\scripts\..\logs\06-setup-monitoring-20260723-192535.log
+Querying VM for IP Address...
+Found cached IP: 192.168.100.34
+
+==================================================
+Copying monitoring configuration to the VM...
+When prompted, enter the password (default: 'sysadmin')
+==================================================
+
+
+==================================================
+Installing Docker and starting Prometheus/Grafana...
+When prompted, enter the password again (default: 'sysadmin')
+==================================================
+
+
+==================================================
+[OK] Monitoring Stack Deployed!
+Grafana is running at: http://192.168.100.34:3000 (Login: admin / sysadmin)
+Prometheus is running at: http://192.168.100.34:9090
+==================================================
+Transcript stopped, output file is D:\vm-project\logs\06-setup-monitoring-20260723-192535.log
+
+==================================================
+ðŸŽ‰ PIPELINE COMPLETE ðŸŽ‰
+Your SRE node is fully provisioned, secured, and monitored!
+==================================================
+[38;2;243;174;53m[0m[48;2;243;174;53m[38;2;38;43;68m USER [0m[38;2;243;174;53m[0m[0m[38;2;240;118;35;49m[7m[0m[48;2;240;118;35m[38;2;224;222;244m  ]8;;file:D:/vm-project\vm-project]8;;\ [0m[38;2;240;118;35m[0m[0m[38;2;75;149;233;49m[7m[0m[48;2;75;149;233m[38;2;224;222;244m  [0m[38;2;75;149;233m[0m]0;pwsh in vm-project 7                                                [38;2;224;222;244min [38;2;75;149;233m[1mpwsh[22m[38;2;224;222;244m [0m[38;2;224;222;244mat [38;2;75;149;233m[1m19:25:50[22m[0m8
+PS>ssh sysadmin@192.168.100.34
+ssh : The term 'ssh' is not recognized as the name of a cmdlet, function, script file, or operable program. Check the 
+spelling of the name, or if a path was included, verify that the path is correct and try again.
+At line:1 char:1
++ ssh sysadmin@192.168.100.34
++ ~~~
+    + CategoryInfo          : ObjectNotFound: (ssh:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+ssh : The term 'ssh' is not recognized as the name of a cmdlet, function, script file, or
+operable program. Check the spelling of the name, or if a path was included, verify that the
+path is correct and try again.
+At line:1 char:1
++ ssh sysadmin@192.168.100.34
++ ~~~
+    + CategoryInfo          : ObjectNotFound: (ssh:String) [], CommandNotFoundException
+    + FullyQualifiedErrorId : CommandNotFoundException
+
+[38;2;243;174;53m[0m[48;2;243;174;53m[38;2;38;43;68m USER [0m[38;2;243;174;53m[0m[0m[38;2;240;118;35;49m[7m[0m[48;2;240;118;35m[38;2;224;222;244m  ]8;;file:D:/vm-project\vm-project]8;;\ [0m[38;2;240;118;35m[0m[0m[38;2;216;30;91;49m[7m[0m[48;2;216;30;91m[38;2;224;222;244m  [0m[38;2;216;30;91m[0m]0;pwsh in vm-project 7                                                [38;2;224;222;244min [38;2;75;149;233m[1mpwsh[22m[38;2;224;222;244m [0m[38;2;224;222;244mat [38;2;75;149;233m[1m19:28:30[22m[0m8
+PS>sudo tailscale up
+
+[38;2;243;174;53m[0m[48;2;243;174;53m[38;2;38;43;68m USER [0m[38;2;243;174;53m[0m[0m[38;2;240;118;35;49m[7m[0m[48;2;240;118;35m[38;2;224;222;244m  ]8;;file:D:/vm-project\vm-project]8;;\ [0m[38;2;240;118;35m[0m[0m[38;2;75;149;233;49m[7m[0m[48;2;75;149;233m[38;2;224;222;244m  [0m[38;2;75;149;233m[0m]0;pwsh in vm-project 7                                                [38;2;224;222;244min [38;2;75;149;233m[1mpwsh[22m[38;2;224;222;244m [0m[38;2;224;222;244mat [38;2;75;149;233m[1m19:28:46[22m[0m8
+PS>.\Deploy-Node.ps1
+==================================================
+ðŸš€ INITIATING MASTER DEPLOYMENT PIPELINE ðŸš€
+==================================================
+WARNING: VM 'SRE-Node-01' already exists!
+
+[OK] Skipping Infrastructure Provisioning (Stages 01-03)...
+Jumping straight to Configuration Management (Stages 04-06).
+
+>>> Executing Stage 04: Connect Node (Booting VM)...
+Transcript started, output file is D:\vm-project\scripts\..\logs\04-connect-node-20260723-193054.log
+Querying VM for IP Address (requires Guest Additions / VM Network to be fully up)...
+Found cached IP: 192.168.100.34
+
+==================================================
+[OK] VM is actively running at IP: 192.168.100.34
+You can now connect to your headless node!
+Run the following command:
+
+    ssh sysadmin@192.168.100.34
+
+(Default password is 'sysadmin')
+==================================================
+Transcript stopped, output file is D:\vm-project\logs\04-connect-node-20260723-193054.log
+Waiting 15 seconds for SSH daemon to initialize...
+
+>>> Executing Stage 05: Tailscale Setup...
+Transcript started, output file is D:\vm-project\scripts\..\logs\05-setup-tailscale-20260723-193110.log
+Querying VM for IP Address...
+Found cached IP: 192.168.100.34
+
+==================================================
+Connecting to VM to install Tailscale.
+When prompted, enter the password (default: 'sysadmin')
+After installation, look for the 'tailscale up' authentication link in the output!
+==================================================
+
+Transcript stopped, output file is D:\vm-project\logs\05-setup-tailscale-20260723-193110.log
+
+>>> Executing Stage 06: Monitoring Setup...
+Transcript started, output file is D:\vm-project\scripts\..\logs\06-setup-monitoring-20260723-193118.log
+Querying VM for IP Address...
+Found cached IP: 192.168.100.34
+
+==================================================
+Copying monitoring configuration to the VM...
+When prompted, enter the password (default: 'sysadmin')
+==================================================
+
+
+==================================================
+Installing Docker and starting Prometheus/Grafana...
+When prompted, enter the password again (default: 'sysadmin')
+==================================================
+
+
+==================================================
+[OK] Monitoring Stack Deployed!
+Grafana is running at: http://192.168.100.34:3000 (Login: admin / sysadmin)
+Prometheus is running at: http://192.168.100.34:9090
+==================================================
+Transcript stopped, output file is D:\vm-project\logs\06-setup-monitoring-20260723-193118.log
+
+==================================================
+ðŸŽ‰ PIPELINE COMPLETE ðŸŽ‰
+Your SRE node is fully provisioned, secured, and monitored!
+==================================================
+[38;2;243;174;53m[0m[48;2;243;174;53m[38;2;38;43;68m USER [0m[38;2;243;174;53m[0m[0m[38;2;240;118;35;49m[7m[0m[48;2;240;118;35m[38;2;224;222;244m  ]8;;file:D:/vm-project\vm-project]8;;\ [0m[38;2;240;118;35m[0m[0m[38;2;75;149;233;49m[7m[0m[48;2;75;149;233m[38;2;224;222;244m  [0m[38;2;75;149;233m[0m]0;pwsh in vm-project 7                                                [38;2;224;222;244min [38;2;75;149;233m[1mpwsh[22m[38;2;224;222;244m [0m[38;2;224;222;244mat [38;2;75;149;233m[1m19:31:28[22m[0m8
+PS>sudo tailscale up
+
+[38;2;243;174;53m[0m[48;2;243;174;53m[38;2;38;43;68m USER [0m[38;2;243;174;53m[0m[0m[38;2;240;118;35;49m[7m[0m[48;2;240;118;35m[38;2;224;222;244m  ]8;;file:D:/vm-project\vm-project]8;;\ [0m[38;2;240;118;35m[0m[0m[38;2;75;149;233;49m[7m[0m[48;2;75;149;233m[38;2;224;222;244m  [0m[38;2;75;149;233m[0m]0;pwsh in vm-project 7                                                [38;2;224;222;244min [38;2;75;149;233m[1mpwsh[22m[38;2;224;222;244m [0m[38;2;224;222;244mat [38;2;75;149;233m[1m19:31:31[22m[0m8
+PS>.\Deploy-Node.ps1
+==================================================
+ðŸš€ INITIATING MASTER DEPLOYMENT PIPELINE ðŸš€
+==================================================
+WARNING: VM 'SRE-Node-01' already exists!
+
+[OK] Skipping Infrastructure Provisioning (Stages 01-03)...
+Jumping straight to Configuration Management (Stages 04-06).
+
+>>> Executing Stage 04: Connect Node (Booting VM)...
+Transcript started, output file is D:\vm-project\scripts\..\logs\04-connect-node-20260723-193346.log
+Querying VM for IP Address (requires Guest Additions / VM Network to be fully up)...
+Found cached IP: 192.168.100.34
+
+==================================================
+[OK] VM is actively running at IP: 192.168.100.34
+You can now connect to your headless node!
+Run the following command:
+
+    ssh sysadmin@192.168.100.34
+
+(Default password is 'sysadmin')
+==================================================
+Transcript stopped, output file is D:\vm-project\logs\04-connect-node-20260723-193346.log
+Waiting 15 seconds for SSH daemon to initialize...
+
+>>> Executing Stage 05: Tailscale Setup...
+Transcript started, output file is D:\vm-project\scripts\..\logs\05-setup-tailscale-20260723-193401.log
+Querying VM for IP Address...
+Found cached IP: 192.168.100.34
+
+==================================================
+Connecting to VM to install Tailscale.
+When prompted, enter the password (default: 'sysadmin')
+After installation, look for the 'tailscale up' authentication link in the output!
+==================================================
+
+Transcript stopped, output file is D:\vm-project\logs\05-setup-tailscale-20260723-193401.log
+
+>>> Executing Stage 06: Monitoring Setup...
+Transcript started, output file is D:\vm-project\scripts\..\logs\06-setup-monitoring-20260723-194822.log
+Querying VM for IP Address...
+Found cached IP: 192.168.100.34
+
+==================================================
+Copying monitoring configuration to the VM...
+When prompted, enter the password (default: 'sysadmin')
+==================================================
+
+
+==================================================
+Installing Docker and starting Prometheus/Grafana...
+When prompted, enter the password again (default: 'sysadmin')
+==================================================
+
+
+==================================================
+[OK] Monitoring Stack Deployed!
+Grafana is running at: http://192.168.100.34:3000 (Login: admin / sysadmin)
+Prometheus is running at: http://192.168.100.34:9090
+==================================================
+Transcript stopped, output file is D:\vm-project\logs\06-setup-monitoring-20260723-194822.log
+
+==================================================
+ðŸŽ‰ PIPELINE COMPLETE ðŸŽ‰
+Your SRE node is fully provisioned, secured, and monitored!
+==================================================
+[38;2;243;174;53m[0m[48;2;243;174;53m[38;2;38;43;68m USER [0m[38;2;243;174;53m[0m[0m[38;2;240;118;35;49m[7m[0m[48;2;240;118;35m[38;2;224;222;244m  ]8;;file:D:/vm-project\vm-project]8;;\ [0m[38;2;240;118;35m[0m[0m[38;2;75;149;233;49m[7m[0m[48;2;75;149;233m[38;2;224;222;244m  [0m[38;2;75;149;233m[0m]0;pwsh in vm-project 7                                                [38;2;224;222;244min [38;2;75;149;233m[1mpwsh[22m[38;2;224;222;244m [0m[38;2;224;222;244mat [38;2;75;149;233m[1m20:23:54[22m[0m8
+PS>.\Deploy-Node.ps1
+==================================================
+ðŸš€ INITIATING MASTER DEPLOYMENT PIPELINE ðŸš€
+==================================================
+WARNING: VM 'SRE-Node-01' already exists!
+
+[OK] Skipping Infrastructure Provisioning (Stages 01-03)...
+Jumping straight to Configuration Management (Stages 04-06).
+
+>>> Executing Stage 04: Connect Node (Booting VM)...
+Transcript started, output file is D:\vm-project\scripts\..\logs\04-connect-node-20260723-202935.log
+Waiting for VM to expose SSH on localhost:2222...
+
+==================================================
+[OK] VM is actively running and forwarded to localhost!
+You can now connect to your headless node!
+Run the following command:
+
+    ssh -p 2222 sysadmin@127.0.0.1
+
+(Default password is 'sysadmin')
+==================================================
+Transcript stopped, output file is D:\vm-project\logs\04-connect-node-20260723-202935.log
+Waiting 15 seconds for SSH daemon to initialize...
+
+>>> Executing Stage 05: Tailscale Setup...
+Transcript started, output file is D:\vm-project\scripts\..\logs\05-setup-tailscale-20260723-202950.log
+
+==================================================
+Connecting to VM to install Tailscale.
+When prompted, enter the password (default: 'sysadmin')
+After installation, look for the 'tailscale up' authentication link in the output!
+==================================================
+
+Transcript stopped, output file is D:\vm-project\logs\05-setup-tailscale-20260723-202950.log
+
+>>> Executing Stage 06: Monitoring Setup...
+Transcript started, output file is D:\vm-project\scripts\..\logs\06-setup-monitoring-20260723-203004.log
+
+==================================================
+Copying monitoring configuration to the VM...
+When prompted, enter the password (default: 'sysadmin')
+==================================================
+
+
+==================================================
+Installing Docker and starting Prometheus/Grafana...
+When prompted, enter the password again (default: 'sysadmin')
+==================================================
+
+
+==================================================
+[OK] Monitoring Stack Deployed!
+Grafana is running at: http://localhost:3000 (Login: admin / sysadmin)
+Prometheus is running at: http://localhost:9090
+(Or access them securely via your new Tailscale IP!)
+==================================================
+Transcript stopped, output file is D:\vm-project\logs\06-setup-monitoring-20260723-203004.log
+
+==================================================
+ðŸŽ‰ PIPELINE COMPLETE ðŸŽ‰
+Your SRE node is fully provisioned, secured, and monitored!
+==================================================
+[38;2;243;174;53m[0m[48;2;243;174;53m[38;2;38;43;68m USER [0m[38;2;243;174;53m[0m[0m[38;2;240;118;35;49m[7m[0m[48;2;240;118;35m[38;2;224;222;244m  ]8;;file:D:/vm-project\vm-project]8;;\ [0m[38;2;240;118;35m[0m[0m[38;2;75;149;233;49m[7m[0m[48;2;75;149;233m[38;2;224;222;244m  [0m[38;2;75;149;233m[0m]0;pwsh in vm-project 7                                                [38;2;224;222;244min [38;2;75;149;233m[1mpwsh[22m[38;2;224;222;244m [0m[38;2;224;222;244mat [38;2;75;149;233m[1m20:31:06[22m[0m8
