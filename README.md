@@ -23,15 +23,28 @@ I wanted to repurpose an old Windows laptop with a broken screen into a headless
 
 ## 🛠️ Architecture & Workflow
 
-```test
-┌──────────────────────┐      ┌────────────────────────┐      ┌──────────────────────┐
-│ Stage 0: Host Prep   │ ───▶ │ Stage 1: VM Provision  │ ───▶ │ Stage 2: OS Install  │
-└──────────────────────┘      └────────────────────────┘      └──────────┬───────────┘
-                                                                         │
-                                                                         ▼
-┌──────────────────────┐      ┌────────────────────────┐      ┌──────────────────────┐
-│ Phase 3: Monitoring  │ ◀─── │ Phase 2: Tailscale     │ ◀─── │ Stage 3: Connect SSH │
-└──────────────────────┘      └────────────────────────┘      └──────────────────────┘
+```mermaid
+%%{init: {'themeVariables': { 'background': '#ffffff'}}}%%
+flowchart TD
+    classDef prov fill:#e6f3ff,stroke:#0066cc,stroke-width:2px,color:#003366,rx:5px,ry:5px;
+    classDef conf fill:#e6ffe6,stroke:#009933,stroke-width:2px,color:#004d1a,rx:5px,ry:5px;
+    
+    style Provisioning fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5
+    style Configuration fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5
+
+    subgraph Provisioning [Infrastructure Provisioning]
+        direction LR
+        A[Stage 0: Host Prep]:::prov --> B[Stage 1: VM Provisioning]:::prov
+        B --> C[Stage 2: OS Installation]:::prov
+    end
+
+    subgraph Configuration [Configuration Management]
+        direction LR
+        D[Stage 3: Connect SSH]:::conf --> E[Phase 2: Tailscale]:::conf
+        E --> F[Phase 3: Monitoring]:::conf
+    end
+
+    C --> D
 ```
 
 <br>
