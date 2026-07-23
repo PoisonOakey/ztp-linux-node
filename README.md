@@ -50,28 +50,34 @@ I wanted to repurpose an old Windows laptop with a broken screen into a headless
 
 ```text
 ztp-homelab/
-├── Deploy-Node.ps1           # Master orchestrator script
-├── README.md                 # Project documentation
-├── .gitignore                # Git ignore rules for logs & VHDs
-├── scripts/                  # Core PowerShell automation scripts
-│   ├── 01-host-prep.ps1      # Disables Hyper-V, installs VirtualBox
-│   ├── 02-provision-node.ps1 # Creates the VM & virtual disk
-│   ├── 03-autoinstall-node.ps1 # Injects cloud-init for headless install
-│   ├── 04-connect-node.ps1   # Boots VM and retrieves IP
-│   ├── 05-setup-tailscale.ps1 # Automates Tailscale mesh VPN setup
-│   ├── 06-setup-monitoring.ps1 # Deploys Docker observability stack
-│   └── cloud-init/           # Ubuntu automated installation configs
-│       ├── user-data         # OS config, users, SSH keys, packages
-│       └── meta-data         # Instance metadata
-├── monitoring/               # Observability configuration
-│   ├── docker-compose.yml    # Prometheus & Grafana stack
-│   └── prometheus.yml        # Metrics scraping configuration
-├── docs/                     # Supplemental documentation
-│   ├── CHANGELOG.md          # Version history
-│   └── TROUBLESHOOTING.md    # Known edge-cases and fixes
-└── logs/                     # Auto-generated execution transcripts
+│
+├── Deploy-Node.ps1                     # Master orchestrator script
+├── README.md                           # Project documentation
+├── .gitignore                          # Git ignore rules for logs & VHDs
+│
+├── scripts/                            # Core PowerShell automation scripts
+│   │
+│   ├── 01-host-prep.ps1                # Disables Hyper-V, installs VirtualBox
+│   ├── 02-provision-node.ps1           # Creates the VM & virtual disk
+│   ├── 03-autoinstall-node.ps1         # Injects cloud-init for headless install
+│   ├── 04-connect-node.ps1             # Boots VM and retrieves IP
+│   ├── 05-setup-tailscale.ps1          # Automates Tailscale mesh VPN setup
+│   ├── 06-setup-monitoring.ps1         # Deploys Docker observability stack
+│   │
+│   └── cloud-init/                     # Ubuntu automated installation configs
+│       ├── user-data                   # OS config, users, SSH keys, packages
+│       └── meta-data                   # Instance metadata
+│
+├── monitoring/                         # Observability configuration
+│   ├── docker-compose.yml              # Prometheus & Grafana stack
+│   └── prometheus.yml                  # Metrics scraping configuration
+│
+├── docs/                               # Supplemental documentation
+│   ├── CHANGELOG.md                    # Version history
+│   └── TROUBLESHOOTING.md              # Known edge-cases and fixes
+│
+└── logs/                               # Auto-generated execution transcripts
 ```
-
 ---
 
 ## 🧠 Key Engineering Decisions
