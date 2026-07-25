@@ -10,7 +10,7 @@ An Infrastructure-as-Code (IaC) pipeline that transforms a broken-screen Windows
 
 **One single command** handles the entire lifecycle: hypervisor provisioning, unattended OS installation, VPN routing, and Docker stack deployment.
 
-<img width="640" height="688" alt="image" src="https://github.com/user-attachments/assets/7a95fb6d-7400-4580-8d20-e905ecdcdff4" />
+<img width="2336" height="1696" alt="image" src="https://github.com/user-attachments/assets/e039d607-03be-4c16-b57c-2cfed5c43c5c" />
 
 ---
 
