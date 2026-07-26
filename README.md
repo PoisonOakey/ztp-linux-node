@@ -84,7 +84,6 @@ flowchart TD
 │   └── 🐳 docker-compose.yml    # Prometheus & Grafana stack
 │
 ├── 📁 docs/                     # Architecture & troubleshooting documentation
-│
 └── 📁 logs/                     # Auto-generated execution transcripts
 ```
 ---
