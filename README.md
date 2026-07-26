@@ -85,6 +85,7 @@ flowchart TD
 │
 ├── 📁 docs/                     # Architecture & troubleshooting documentation
 └── 📁 logs/                     # Auto-generated execution transcripts
+
 ```
 ---
 
