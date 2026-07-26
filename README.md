@@ -1,4 +1,4 @@
-# Zero-Touch Provisioning (ZTP) Homelab Automation
+# Zero-Touch Provisioning (ZTP) Homelab Automation 🏡
 
 > A fully automated Infrastructure-as-Code (IaC) pipeline that provisions, configures, and secures a headless Ubuntu Server node via VirtualBox on a Windows host.
 
