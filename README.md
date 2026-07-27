@@ -1,4 +1,4 @@
-# Zero-Touch Provisioning (ZTP) Homelab Automation 🏡
+# ZTP Homelab Automation
 
 > A fully automated Infrastructure-as-Code (IaC) pipeline that provisions, configures, and secures a headless Ubuntu Server node via VirtualBox on a Windows host.
 
@@ -10,8 +10,6 @@ An Infrastructure-as-Code (IaC) pipeline that transforms a broken-screen Windows
 
 **One single command** handles the entire lifecycle: hypervisor provisioning, unattended OS installation, VPN routing, and Docker stack deployment.
 
-<img width="2336" height="1696" alt="image" src="https://github.com/user-attachments/assets/e039d607-03be-4c16-b57c-2cfed5c43c5c" />
-
 ---
 
 ## 🛑 The Problem
@@ -20,22 +18,10 @@ An Infrastructure-as-Code (IaC) pipeline that transforms a broken-screen Windows
 - **Unstable networking:** VirtualBox bridged Wi-Fi adapters suffer from massive packet loss
 - **Remote access:** Securely reaching the server from outside the network usually requires insecure router port-forwarding
 
-
----
-
-## 🧠 Key Engineering Decisions
-
-| Area | Detail |
-|---|---|
-| **Zero-Touch Provisioning** | Injected `debconf_selections` via Cloud-Init to force 100% headless OS installations |
-| **Network Virtualization** | NAT topology + `virtio` drivers fixed bridged Wi-Fi packet drops (5 Mbps → 800+ Mbps) |
-| **Resilient Orchestration** | PowerShell state-checking and `dpkg` auto-repair ensure the pipeline self-heals from interruptions |
-| **Process Bypasses** | Dynamic `$env:WINDIR\sysnative` bypasses 32-bit Windows redirection for native 64-bit SSH execution |
-| **Zero-Trust Access** | Tailscale mesh VPN enables secure, instant remote access without complex router port-forwarding |
-
 ---
 
 ## 🛠️ Architecture & Workflow
+
 ```mermaid
 %%{init: {'themeVariables': { 'background': '#ffffff'}}}%%
 flowchart TD
@@ -78,14 +64,28 @@ flowchart TD
 ├── ⚙️ Deploy-Node.ps1           # Master execution entrypoint
 │
 ├── 📁 scripts/                  # Modular PowerShell IaC stages (Provisioning, Networking, etc.)
-│   └── ☁️ cloud-init/           # Headless Ubuntu autoinstall configurations
+│   └── 📁 cloud-init/           # Headless Ubuntu autoinstall configurations
 │
 ├── 📁 monitoring/               # Observability configuration
 │   └── 🐳 docker-compose.yml    # Prometheus & Grafana stack
 │
 ├── 📁 docs/                     # Architecture & troubleshooting documentation
+│
 └── 📁 logs/                     # Auto-generated execution transcripts
 ```
+
+---
+
+## 🧠 Key Engineering Decisions
+
+| Area | Detail |
+|---|---|
+| **Zero-Touch Provisioning** | Injected `debconf_selections` via Cloud-Init to force 100% headless OS installations |
+| **Network Virtualization** | NAT topology + `virtio` drivers fixed bridged Wi-Fi packet drops (5 Mbps → 800+ Mbps) |
+| **Resilient Orchestration** | PowerShell state-checking and `dpkg` auto-repair ensure the pipeline self-heals from interruptions |
+| **Process Bypasses** | Dynamic `$env:WINDIR\sysnative` bypasses 32-bit Windows redirection for native 64-bit SSH execution |
+| **Zero-Trust Access** | Tailscale mesh VPN enables secure, instant remote access without complex router port-forwarding |
+
 ---
 
 ## ⚡ Execution
@@ -104,12 +104,18 @@ The entire pipeline is wrapped in a master orchestrator.
 
 | Metric | Before (Manual) | After (Automated) |
 |---|---|---|
-| **Time to provision server** | 20-30 minutes (requires screen) | ~8 minutes (100% headless) |
+| **Time to provision** | 20-30 minutes (requires screen) | ~8 minutes (100% headless) |
 | **Network throughput** | 2-5 Mbps (Bridged Wi-Fi drops) | 800+ Mbps (NAT + Virtio) |
-| **Remote Access Setup** | Complex Router Port Forwarding | Instant (Tailscale mesh VPN) |
+| **Remote access** | Complex Router Port Forwarding | Instant (Tailscale mesh VPN) |
 
 ---
 
 ## 📚 Documentation
 - [CHANGELOG.md](docs/CHANGELOG.md) - Version history and bug fixes.
 - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Detailed root-cause analysis for advanced edge cases.
+
+---
+
+## ⚙️ CI/CD Pipeline
+
+This project implements a **GitHub Actions** pipeline for automated infrastructure code testing. Every push triggers `PSScriptAnalyzer` to lint the PowerShell orchestration scripts, ensuring strict adherence to best practices and zero syntax errors prior to deployment.
