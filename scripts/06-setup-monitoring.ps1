@@ -10,17 +10,13 @@ and start the containers via Docker Compose.
 .PARAMETER VmName
 Name of the Virtual Machine. Default: "SRE-Node-01"
 #>
-param (
-    [string]$VmName = "SRE-Node-01"
-)
+param ()
 
 $logDir = Join-Path $PSScriptRoot "..\logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }
 $scriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyCommand.Name)
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 Start-Transcript -Path (Join-Path $logDir "$scriptName-$timestamp.log") -Append
-
-$VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 
 # 1. Retrieve the IP address
 $ipAddress = "127.0.0.1"

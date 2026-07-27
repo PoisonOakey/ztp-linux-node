@@ -46,7 +46,7 @@ while (-not $sshReady -and $retryCount -lt $maxRetries) {
             break
         }
     } catch {
-        # Port not ready yet
+        Write-Verbose "Port not ready yet."
     }
     
     Write-Output "SSH not yet available, retrying in 3 seconds... ($($retryCount+1)/$maxRetries)"

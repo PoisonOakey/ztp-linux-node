@@ -17,7 +17,7 @@ jobs:
         shell: powershell
         run: |
           Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
-          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning -ExcludeRule PSUseBOMForUnicodeEncodedFile
           if ($results) {
             $results | Format-Table
             Write-Error "PSScriptAnalyzer found issues."

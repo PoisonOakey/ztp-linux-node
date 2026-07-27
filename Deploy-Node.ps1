@@ -14,7 +14,7 @@ $VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
 $VmName = "SRE-Node-01"
 
 Write-Output "=================================================="
-Write-Output "🚀 INITIATING MASTER DEPLOYMENT PIPELINE 🚀"
+Write-Output "ðŸš€ INITIATING MASTER DEPLOYMENT PIPELINE ðŸš€"
 Write-Output "=================================================="
 
 $existingVms = & $VBoxManage list vms 2>$null
@@ -55,8 +55,6 @@ if (-not $skipProvisioning) {
         if ($state -match "powered off") {
             $isInstalling = $false
             Write-Output "`n[SUCCESS] OS Installation complete! VM has powered off."
-        } else {
-            Write-Host "." -NoNewline
         }
     }
 }
@@ -78,6 +76,6 @@ Write-Output "`n>>> Executing Stage 06: Monitoring Setup..."
 & .\scripts\06-setup-monitoring.ps1
 
 Write-Output "`n=================================================="
-Write-Output "🎉 PIPELINE COMPLETE 🎉"
+Write-Output "ðŸŽ‰ PIPELINE COMPLETE ðŸŽ‰"
 Write-Output "Your SRE node is fully provisioned, secured, and monitored!"
 Write-Output "=================================================="

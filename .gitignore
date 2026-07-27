@@ -1,0 +1,8 @@
+# PowerShell Transcript Logs
+/logs/
+
+# VirtualBox Artifacts
+*.vdi
+*.iso
+cidata_mount/
+cidata.vhd
