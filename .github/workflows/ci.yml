@@ -1,0 +1,27 @@
+name: PowerShell CI
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+
+jobs:
+  lint:
+    runs-on: windows-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Run PSScriptAnalyzer
+        shell: powershell
+        run: |
+          Install-Module -Name PSScriptAnalyzer -Force -Scope CurrentUser
+          $results = Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning
+          if ($results) {
+            $results | Format-Table
+            Write-Error "PSScriptAnalyzer found issues."
+            exit 1
+          } else {
+            Write-Output "No issues found! Scripts are clean."
+          }
