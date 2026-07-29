@@ -118,4 +118,13 @@ The entire pipeline is wrapped in a master orchestrator.
 
 ## ⚙️ CI/CD Pipeline
 
-This project implements a **GitHub Actions** pipeline for automated infrastructure code testing. Every push triggers `PSScriptAnalyzer` to lint the PowerShell orchestration scripts, ensuring strict adherence to best practices and zero syntax errors prior to deployment.
+GitHub Actions runs parallel jobs on every push/PR to validate the infrastructure code: lint the PowerShell orchestration scripts (`PSScriptAnalyzer`) → validate the Docker Compose stack syntax (`docker compose config`). A failing check in either job catches syntax errors before deployment. Run the same checks locally with:
+
+```powershell
+# 1. Lint PowerShell scripts
+Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning
+
+# 2. Validate Docker Compose config
+cp monitoring/.env.example monitoring/.env
+docker compose -f monitoring/docker-compose.yml config
+```
