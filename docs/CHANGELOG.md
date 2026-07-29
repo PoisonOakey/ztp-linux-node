@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.8.0] - 2026-07-30
+### Changed
+- **Problem statement:** Rewrote `README.md`'s "The Problem" around the four constraints the pipeline actually addresses (no usable console, unversioned GUI provisioning, inbound access requiring a router port-forward, hypervisor-side monitoring with no history and no remote access). Replaced the previous list, which described implementation bugs encountered during the build rather than the project's motivating constraints.
+- **Metrics table:** Restructured to map 1:1 onto those four problems, with each figure traceable to a source — provisioning time from `logs/`, scrape interval from `monitoring/prometheus.yml`, and the one unmeasured baseline explicitly marked `(est.)`.
+
+### Fixed
+- **Unverified throughput claim:** `README.md` stated the NAT + `virtio` migration took the VM from 5 Mbps to 800+ Mbps. Neither figure was ever benchmarked and the numbers appeared nowhere else in the repository. Replaced with a measurement taken from inside the VM (~210-290 Mbps across four samples) and the observed pre-migration symptom (a Docker pull stalled at ~50% after an hour). Recorded in `TROUBLESHOOTING.md` #7 along with the command used, and noted there that the pre-migration figure was never benchmarked.
+
 ## [1.7.0] - 2026-07-29
 ### Added
 - **Single source of truth config:** Added `config/node.json` for VM name, RAM, CPU cores, disk size, and ISO URL, plus a shared `scripts/Get-LabConfig.ps1` loader. `01-host-prep.ps1`, `02-provision-node.ps1`, `03-autoinstall-node.ps1`, `04-connect-node.ps1`, and `Deploy-Node.ps1` all read from it now instead of each hardcoding (and risking drifting out of sync on) their own defaults -- `SRE-Node-01` was previously duplicated independently across four separate files. Explicit command-line arguments still override the config file per-run.

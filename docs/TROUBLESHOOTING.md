@@ -115,7 +115,7 @@ The VM is fully operational and connected to the bridged network; it just cannot
 ## 7. Dial-up Speeds / Wi-Fi Bridging Packet Drop
 
 **Symptoms:**
-- The VM installs successfully, but `apt-get` downloads (or Docker image pulls) crawl at dial-up speeds.
+- The VM installs successfully, but `apt-get` downloads (or Docker image pulls) crawl at dial-up speeds. Observed in practice: a Docker image pull stalled at roughly 50% after an hour.
 - Pinging the VM shows severe packet loss.
 
 **Root Cause:**
@@ -123,6 +123,12 @@ VirtualBox Bridged Networking has a fatal flaw when bridged over modern Wi-Fi ad
 
 **Resolution:**
 The architecture was migrated entirely to **NAT**. The VM now securely shares the host's internet connection natively with zero packet drops. The `virtio` paravirtualized network driver was also applied (`--nictype1 virtio`) to maximize throughput. Host access is handled seamlessly via VirtualBox Port Forwarding.
+
+Measured after the migration: **~210-290 Mbps** (four samples: 294 / 225 / 223 / 212 Mbps), taken from inside the VM against a Cloudflare CDN endpoint, so the figure covers the whole path (guest → NAT → host Wi-Fi → ISP → CDN):
+```bash
+curl -s -o /dev/null -w '%{speed_download}' 'https://speed.cloudflare.com/__down?bytes=52428800'
+```
+The pre-migration figure was never benchmarked, so only the qualitative symptom above is on record for it.
 
 ---
 

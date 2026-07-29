@@ -14,9 +14,10 @@ The pipeline automates the entire lifecycle: hypervisor provisioning, unattended
 
 ## 🛑 The Problem
 
-- **Broken hardware:** Repurposing a laptop with a broken screen required a 100% headless VM installation
-- **Unstable networking:** VirtualBox bridged Wi-Fi adapters suffer from massive packet loss
-- **Remote access:** Securely reaching the server from outside the network usually requires insecure router port-forwarding
+- **Broken display:** The Ubuntu installer prompts for disk, bootloader, and credentials before networking exists — none answerable on this machine.
+- **GUI provisioning:** VM specs set through the VirtualBox wizard aren't versioned, reviewable, or repeatable.
+- **Inbound access:** Reaching SSH from outside the LAN requires a router port-forward to the VM.
+- **Hypervisor-side monitoring:** VirtualBox's metrics keep no history and can only be read at the host's screen.
 
 ---
 
@@ -84,7 +85,7 @@ flowchart TD
 |---|---|
 | **Single Source of Truth** | `config/node.json` centralizes VM name, RAM, CPU cores, disk size, and ISO URL -- every stage reads the same file instead of carrying its own hardcoded defaults |
 | **Zero-Touch Provisioning** | Injected `debconf_selections` and dynamic SSH keys via Cloud-Init for passwordless, 100% headless OS installations |
-| **Network Virtualization** | NAT topology + `virtio` drivers fixed bridged Wi-Fi packet drops (5 Mbps → 800+ Mbps) |
+| **Network Virtualization** | NAT + `virtio` replaced bridged Wi-Fi, which stalled Docker pulls at ~50% after an hour; ~220 Mbps measured after |
 | **Resilient Orchestration** | PowerShell state-checking and `dpkg` auto-repair ensure the pipeline self-heals from interruptions |
 | **Process Bypasses** | Dynamic `$env:WINDIR\sysnative` bypasses 32-bit Windows redirection for native 64-bit SSH execution |
 | **Zero-Trust Access** | Tailscale mesh VPN enables secure remote access (one-time browser device approval) without complex router port-forwarding |
@@ -107,9 +108,10 @@ The entire pipeline is wrapped in a master orchestrator.
 
 | Metric | Manual Provisioning | Automated Pipeline |
 |---|---|---|
-| **Time to provision** | 20-30 minutes (interactive) | ~8 minutes (unattended) |
-| **Network throughput** | 2-5 Mbps (Bridged Wi-Fi) | 800+ Mbps (NAT + Virtio) |
-| **Remote access** | Router Port Forwarding | Tailscale mesh VPN |
+| **Time to provision** | 20-30 minutes, interactive (est.) | ~4 minutes, headless (`logs/`) |
+| **Reproducibility** | Undocumented manual steps | Single command against `config/node.json` |
+| **Remote access** | Router port forwarding | Tailscale mesh VPN, zero inbound ports |
+| **Host visibility** | No history, host screen only | `node_exporter` scraped every 15s, viewable from any device on the tailnet |
 
 ---
 
