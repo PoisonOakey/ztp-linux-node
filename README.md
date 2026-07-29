@@ -4,15 +4,15 @@
 
 ---
 
-## 🚀 What I Built
+## Overview
 
-An Infrastructure-as-Code (IaC) pipeline that transforms a broken-screen Windows laptop into a headless Linux home server in under 10 minutes.
+An Infrastructure-as-Code (IaC) pipeline that provisions a headless Linux home server via VirtualBox on a Windows host.
 
-**One single command** handles the entire lifecycle: hypervisor provisioning, unattended OS installation, VPN routing, and Docker stack deployment.
+The pipeline automates the entire lifecycle: hypervisor provisioning, unattended OS installation, VPN routing, and Docker stack deployment.
 
 ---
 
-## 🛑 The Problem
+## The Problem
 
 - **Broken hardware:** Repurposing a laptop with a broken screen required a 100% headless VM installation
 - **Unstable networking:** VirtualBox bridged Wi-Fi adapters suffer from massive packet loss
@@ -20,7 +20,7 @@ An Infrastructure-as-Code (IaC) pipeline that transforms a broken-screen Windows
 
 ---
 
-## 🛠️ Architecture & Workflow
+## Architecture & Workflow
 
 ```mermaid
 %%{init: {'themeVariables': { 'background': '#ffffff'}}}%%
@@ -56,31 +56,31 @@ flowchart TD
 
 ---
 
-## 📂 Repository Structure
+## Repository Structure
 
 ```text
-📦 ztp-homelab/
+ztp-homelab/
 │
-├── ⚙️ Deploy-Node.ps1           # Master execution entrypoint
+├── Deploy-Node.ps1           # Master execution entrypoint
 │
-├── 📁 scripts/                  # Modular PowerShell IaC stages (Provisioning, Networking, etc.)
-│   └── 📁 cloud-init/           # Headless Ubuntu autoinstall configurations
+├── scripts/                  # Modular PowerShell IaC stages (Provisioning, Networking, etc.)
+│   └── cloud-init/           # Headless Ubuntu autoinstall configurations
 │
-├── 📁 monitoring/               # Observability configuration
-│   └── 🐳 docker-compose.yml    # Prometheus & Grafana stack
+├── monitoring/               # Observability configuration
+│   └── docker-compose.yml    # Prometheus & Grafana stack
 │
-├── 📁 docs/                     # Architecture & troubleshooting documentation
+├── docs/                     # Architecture & troubleshooting documentation
 │
-└── 📁 logs/                     # Auto-generated execution transcripts
+└── logs/                     # Auto-generated execution transcripts
 ```
 
 ---
 
-## 🧠 Key Engineering Decisions
+## Key Engineering Decisions
 
 | Area | Detail |
 |---|---|
-| **Zero-Touch Provisioning** | Injected `debconf_selections` via Cloud-Init to force 100% headless OS installations |
+| **Zero-Touch Provisioning** | Injected `debconf_selections` and dynamic SSH keys via Cloud-Init for passwordless, 100% headless OS installations |
 | **Network Virtualization** | NAT topology + `virtio` drivers fixed bridged Wi-Fi packet drops (5 Mbps → 800+ Mbps) |
 | **Resilient Orchestration** | PowerShell state-checking and `dpkg` auto-repair ensure the pipeline self-heals from interruptions |
 | **Process Bypasses** | Dynamic `$env:WINDIR\sysnative` bypasses 32-bit Windows redirection for native 64-bit SSH execution |
@@ -88,7 +88,7 @@ flowchart TD
 
 ---
 
-## ⚡ Execution
+## Execution
 
 The entire pipeline is wrapped in a master orchestrator.
 
@@ -100,22 +100,22 @@ The entire pipeline is wrapped in a master orchestrator.
 
 ---
 
-## 📈 Outcomes
+## Metrics
 
-| Metric | Before (Manual) | After (Automated) |
+| Metric | Manual Provisioning | Automated Pipeline |
 |---|---|---|
-| **Time to provision** | 20-30 minutes (requires screen) | ~8 minutes (100% headless) |
-| **Network throughput** | 2-5 Mbps (Bridged Wi-Fi drops) | 800+ Mbps (NAT + Virtio) |
-| **Remote access** | Complex Router Port Forwarding | Instant (Tailscale mesh VPN) |
+| **Time to provision** | 20-30 minutes (interactive) | ~8 minutes (unattended) |
+| **Network throughput** | 2-5 Mbps (Bridged Wi-Fi) | 800+ Mbps (NAT + Virtio) |
+| **Remote access** | Router Port Forwarding | Tailscale mesh VPN |
 
 ---
 
-## 📚 Documentation
+## Documentation
 - [CHANGELOG.md](docs/CHANGELOG.md) - Version history and bug fixes.
 - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Detailed root-cause analysis for advanced edge cases.
 
 ---
 
-## ⚙️ CI/CD Pipeline
+## CI/CD Pipeline
 
 This project implements a **GitHub Actions** pipeline for automated infrastructure code testing. Every push triggers `PSScriptAnalyzer` to lint the PowerShell orchestration scripts, ensuring strict adherence to best practices and zero syntax errors prior to deployment.

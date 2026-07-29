@@ -25,3 +25,14 @@ jobs:
           } else {
             Write-Output "No issues found! Scripts are clean."
           }
+
+  compose-config:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Validate Docker Compose Configuration
+        run: |
+          cp monitoring/.env.example monitoring/.env
+          docker compose -f monitoring/docker-compose.yml config

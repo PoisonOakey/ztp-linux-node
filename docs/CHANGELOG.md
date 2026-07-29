@@ -5,6 +5,16 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.5.0] - 2026-07-29
+### Added
+- **Observability:** Added `node_exporter` to the Docker Compose stack and configured Prometheus to scrape host-level metrics.
+- **CI/CD Pipeline:** Added a new parallel Ubuntu runner job to validate the `docker-compose.yml` configuration on pull requests and pushes.
+
+### Changed
+- **Secrets Management:** Moved the Grafana admin password from plaintext in `docker-compose.yml` to a `.env` file (with `.env.example` template) and removed plaintext secrets from the repository.
+- **Security:** Switched from interactive password authentication to dynamic SSH key injection via cloud-init. Scripts no longer prompt for passwords, enabling true zero-touch provisioning.
+- **Documentation:** Updated `README.md` to reflect true zero-touch passwordless SSH key authentication and adjusted the marketing tone. Added troubleshooting steps for console-login fallback.
+
 ## [1.4.0] - 2026-07-27
 ### Added
 - **CI/CD Pipeline:** Implemented a GitHub Actions workflow to automatically lint PowerShell scripts using `PSScriptAnalyzer` on every push.
