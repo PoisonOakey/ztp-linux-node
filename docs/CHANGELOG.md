@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.6.0] - 2026-07-29
+### Fixed
+- **Stage 01 restart loop:** `bcdedit /enum "{current}"` was mangled by PowerShell's native-argument marshalling and always returned an error instead of real BCD data, making the idempotency check fail closed and re-demand a restart on every run regardless of actual state. Switched to bare `bcdedit /enum`.
+- **Stage 02 delete failure:** the VM-wipe path called `unregistervm --delete` without checking if the VM was still running, which fails with "locked for a session" and cascades into every subsequent `VBoxManage` call. Added the same power-off-if-running guard `03-autoinstall-node.ps1` already had.
+
+### Changed
+- **Documentation:** Tightened README wording ("fully automated" → "automated", "instant remote access" → names the one-time Tailscale device approval step). Added TROUBLESHOOTING.md entries for the two fixes above, a false-alarm CPU-spike scenario from an unkilled `yes` loop, and why reaching the VM's Tailscale IP requires Tailscale on the connecting device too (including the host).
+
 ## [1.5.0] - 2026-07-29
 ### Added
 - **Observability:** Added `node_exporter` to the Docker Compose stack and configured Prometheus to scrape host-level metrics.
