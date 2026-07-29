@@ -54,6 +54,15 @@ if ($existingVms -match "`"$VmName`"") {
     Write-Warning "Virtual Machine '$VmName' already exists!"
     $choice = Read-Host "Do you want to delete it and recreate? (y/N)"
     if ($choice -match "^[yY]") {
+        # A running VM holds a write-lock session; unregistervm/createmedium/etc.
+        # all fail with "is locked for a session" until it's powered off first.
+        $runningVms = & $VBoxManage list runningvms
+        if ($runningVms -match "`"$VmName`"") {
+            Write-Output "-> Powering off the currently running VM before deleting it..."
+            & $VBoxManage controlvm $VmName poweroff
+            Start-Sleep -Seconds 3
+        }
+
         Write-Output "-> Unregistering and deleting existing VM..."
         & $VBoxManage unregistervm $VmName --delete
     } else {

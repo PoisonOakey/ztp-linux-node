@@ -170,5 +170,59 @@ The script also fails loudly (`exit 1`) before writing `user-data` at all if it 
 
 ---
 
+## 11. Infinite "Restart Required" Loop in Stage 01
+
+**Symptoms:**
+- `01-host-prep.ps1` reports `CRITICAL: Hyper-V features were modified. A system restart is REQUIRED before running Stage 2.` and throws, telling you to reboot.
+- You reboot, run `Deploy-Node.ps1` again, and it demands the exact same restart again -- forever, even though nothing is actually changing on the system.
+
+**Root Cause:**
+The BCD idempotency check called `bcdedit /enum "{current}"` to see whether `hypervisorlaunchtype` was already off before touching it. PowerShell's native-argument marshalling mangles the curly-brace `"{current}"` token when passed through the call operator (`&`), so `bcdedit` returns `The specified entry type is invalid` instead of real boot configuration data. `Select-String` then never finds the `hypervisorlaunchtype` line, the check always concludes "not yet disabled," and the script re-triggers the restart requirement on every single run regardless of actual state.
+
+**Resolution:**
+The check was changed to call plain `bcdedit /enum` (no entry ID), which enumerates the active boot entries by default and parses cleanly through PowerShell -- avoiding the malformed argument entirely. This matches how the corresponding `bcdedit /set hypervisorlaunchtype off` call already omits the ID for the same reason. Confirmed fixed via `logs/01-host-prep-*.log`: after the fix, a re-run correctly reports `[OK] BCD hypervisor launch type is already disabled.` and proceeds straight to Stage 2 with no restart demanded.
+
+---
+
+## 12. Grafana Shows CPU Pegged at 100%+ and It Won't Come Down
+
+**Symptoms:**
+- The "Node Exporter Full" dashboard (Grafana ID `1860`) shows CPU usage ramp up to 100% (or higher, on multi-core panels) and stay there indefinitely.
+- This is often self-inflicted while intentionally load-testing the dashboard, e.g. running `yes > /dev/null &` a few times over SSH to confirm the graphs actually move.
+
+**Root Cause:**
+`yes` writes to stdout in an infinite loop with no natural exit, so each backgrounded `yes > /dev/null &` permanently pins one CPU core until explicitly killed. The usual mistake: running `kill` with no argument. Bash's `kill` builtin requires a PID or job spec to know what to terminate — `kill` alone just prints its usage string and kills nothing, silently leaving every backgrounded `yes` process running. This isn't a bug in the monitoring stack; Grafana/Prometheus are correctly reporting real, ongoing load from `/proc` via `node_exporter` (see the item 1 fix in `docs/CHANGELOG.md` 1.5.0) — it's proof the pipeline works, not a symptom of it breaking.
+
+**Resolution:**
+Give `kill` an actual target:
+```bash
+kill %1 %2 %3        # by job number, if you backgrounded a few in the same shell
+kill 3518 3520 3521  # by PID, from `jobs -l` or `ps aux | grep yes`
+pkill yes             # simplest -- kills every process literally named "yes"
+```
+CPU usage on the Grafana dashboard should drop back down within one scrape interval (`scrape_interval: 15s` in `monitoring/prometheus.yml`) plus a few seconds to settle.
+
+---
+
+## 13. Can't Reach Grafana/Prometheus via the Tailscale IP -- Not Even From the Host Machine
+
+**Symptoms:**
+- `http://<tailscale-ip>:3000` (or `:9090`) times out from your phone, another laptop, *and* even from the Windows machine that's hosting the VM itself.
+- `Test-NetConnection -ComputerName <tailscale-ip> -Port 3000` fails both the TCP and ping checks from the host.
+- The VM itself shows up fine in the Tailscale admin console with a valid `100.x.x.x` address, and `tailscale up` completed successfully inside the VM.
+
+**Root Cause:**
+`05-setup-tailscale.ps1` only installs and authenticates Tailscale **inside the guest VM**, over SSH. It never touches the Windows host. A Tailscale IP (`100.64.0.0/10`) is only reachable by a device that is itself running the Tailscale client and signed into the same tailnet -- there's no route to it otherwise, the same way there's no route to another company's internal VPN just because you know an IP on it. If the connecting device (host laptop, phone, etc.) was never enrolled, `100.x.x.x` addresses simply don't resolve for it, regardless of any Docker/firewall configuration on the VM side.
+
+**Resolution:**
+This is intentionally **not** automated by the pipeline, and that's a deliberate design choice, not a gap: which personal devices join your tailnet is a decision for the operator, not something a VM-provisioning script should silently do to your own laptop as a side effect. To actually reach the VM remotely:
+1. Install Tailscale on whichever device you want to reach it from (e.g. on Windows: `winget install -e --id Tailscale.Tailscale`; there's an app for iOS/Android/macOS/Linux too).
+2. Sign into the **same** Tailscale account/tailnet used for the VM.
+3. Then `http://<tailscale-ip>:3000` becomes reachable from that device.
+
+Note that if you're physically at the host machine, you don't need any of this -- `http://localhost:3000` already works via the existing VirtualBox NAT port-forward. Tailscale only matters for devices that *aren't* the host.
+
+---
+
 ## Conclusion
 SysOps automation relies heavily on environmental consistency. When debugging headless installations, always rule out physical file corruption (like the truncated ISO) before tearing apart your bootloader configurations!

@@ -65,8 +65,16 @@ try {
     # Resolve bcdedit path (handle 32-bit PowerShell on 64-bit OS)
     $bcdeditPath = if (Test-Path "$env:windir\sysnative\bcdedit.exe") { "$env:windir\sysnative\bcdedit.exe" } else { "$env:windir\System32\bcdedit.exe" }
 
-    # Check current BCD state to be idempotent
-    $bcdState = & $bcdeditPath /enum "{current}" | Select-String "hypervisorlaunchtype"
+    # Check current BCD state to be idempotent.
+    # NOTE: deliberately not passing an entry ID (e.g. "{current}") here --
+    # PowerShell's native-argument marshalling mangles curly-brace tokens like
+    # that, so bcdedit sees a malformed argument and returns "The specified
+    # entry type is invalid" instead of real data. That makes this check
+    # always fail closed, so the script re-disables (and re-demands a reboot
+    # for) a setting that was already off. Bare /enum lists the active boot
+    # entries by default, which is sufficient and avoids the bad argument
+    # entirely -- matches how /set below already omits the ID for the same reason.
+    $bcdState = & $bcdeditPath /enum | Select-String "hypervisorlaunchtype"
     if ($bcdState -match "Off") {
         Write-Output "   [OK] BCD hypervisor launch type is already disabled."
     }
