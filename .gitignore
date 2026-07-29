@@ -1,5 +1,6 @@
 # PowerShell Transcript Logs
-/logs/
+/logs/*
+!/logs/.gitkeep
 
 # VirtualBox Artifacts
 *.vdi
