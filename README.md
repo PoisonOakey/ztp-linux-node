@@ -63,6 +63,8 @@ flowchart TD
 │
 ├── ⚙️ Deploy-Node.ps1           # Master execution entrypoint
 │
+├── 📁 config/                   # Single source of truth: VM name, hardware sizing, ISO URL
+│
 ├── 📁 scripts/                  # Modular PowerShell IaC stages (Provisioning, Networking, etc.)
 │   └── 📁 cloud-init/           # Headless Ubuntu autoinstall configurations
 │
@@ -80,6 +82,7 @@ flowchart TD
 
 | Area | Detail |
 |---|---|
+| **Single Source of Truth** | `config/node.json` centralizes VM name, RAM, CPU cores, disk size, and ISO URL -- every stage reads the same file instead of carrying its own hardcoded defaults |
 | **Zero-Touch Provisioning** | Injected `debconf_selections` and dynamic SSH keys via Cloud-Init for passwordless, 100% headless OS installations |
 | **Network Virtualization** | NAT topology + `virtio` drivers fixed bridged Wi-Fi packet drops (5 Mbps → 800+ Mbps) |
 | **Resilient Orchestration** | PowerShell state-checking and `dpkg` auto-repair ensure the pipeline self-heals from interruptions |

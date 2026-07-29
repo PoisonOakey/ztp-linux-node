@@ -26,6 +26,19 @@ jobs:
             Write-Output "No issues found! Scripts are clean."
           }
 
+      - name: Validate config/node.json
+        shell: powershell
+        run: |
+          $config = Get-Content config/node.json -Raw | ConvertFrom-Json
+          $required = @('vm_name','lab_dir','iso_url','ram_mb','cpu_cores','disk_size_mb')
+          foreach ($key in $required) {
+            if (-not $config.PSObject.Properties.Name.Contains($key)) {
+              Write-Error "config/node.json is missing required key: $key"
+              exit 1
+            }
+          }
+          Write-Output "config/node.json is valid."
+
   compose-config:
     runs-on: ubuntu-latest
     steps:

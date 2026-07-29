@@ -11,7 +11,13 @@ networking and observability.
 
 $ErrorActionPreference = 'Stop'
 $VBoxManage = "C:\Program Files\Oracle\VirtualBox\VBoxManage.exe"
-$VmName = "SRE-Node-01"
+
+# config/node.json is the single source of truth for lab/hardware settings --
+# every stage below reads the same file independently, so this just keeps
+# the orchestrator's own polling logic (wipe-check, install wait-loop) in sync.
+. (Join-Path $PSScriptRoot "scripts\Get-LabConfig.ps1")
+$Config = Get-LabConfig -ConfigPath (Join-Path $PSScriptRoot "config\node.json")
+$VmName = $Config.vm_name
 
 Write-Output "=================================================="
 Write-Output "ðŸš€ INITIATING MASTER DEPLOYMENT PIPELINE ðŸš€"

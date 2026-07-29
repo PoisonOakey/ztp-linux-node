@@ -8,22 +8,33 @@ automatically detects and configures the bridged network adapter,
 creates a virtual disk, and attaches the Ubuntu ISO.
 
 .PARAMETER VmName
-Name of the Virtual Machine. Default: "SRE-Node-01"
+Name of the Virtual Machine. Defaults to the value in config/node.json.
 
 .PARAMETER LabDir
-The directory where the VM disk and ISO are stored. Default: "$HOME\server-lab"
+The directory where the VM disk and ISO are stored. Defaults to the value in config/node.json.
 
 .PARAMETER IsoName
-The name of the Ubuntu ISO file. Default: "ubuntu-24.04.4-live-server-amd64.iso"
+The name of the Ubuntu ISO file. Defaults to the filename derived from config/node.json's iso_url.
 #>
 param (
-    [string]$VmName = "SRE-Node-01",
-    [string]$LabDir = "$HOME\server-lab",
-    [string]$IsoName = "ubuntu-24.04.4-live-server-amd64.iso",
-    [int]$RamMb = 4096,
-    [int]$CpuCores = 2,
-    [int]$DiskSizeMb = 25600
+    [string]$VmName,
+    [string]$LabDir,
+    [string]$IsoName,
+    [int]$RamMb,
+    [int]$CpuCores,
+    [int]$DiskSizeMb
 )
+
+# config/node.json is the single source of truth for lab/hardware settings;
+# explicit arguments still override it for one-off runs.
+. (Join-Path $PSScriptRoot "Get-LabConfig.ps1")
+$Config = Get-LabConfig -ConfigPath (Join-Path $PSScriptRoot "..\config\node.json")
+if (-not $VmName) { $VmName = $Config.vm_name }
+if (-not $LabDir) { $LabDir = $Config.lab_dir }
+if (-not $IsoName) { $IsoName = Split-Path $Config.iso_url -Leaf }
+if (-not $RamMb) { $RamMb = $Config.ram_mb }
+if (-not $CpuCores) { $CpuCores = $Config.cpu_cores }
+if (-not $DiskSizeMb) { $DiskSizeMb = $Config.disk_size_mb }
 
 $logDir = Join-Path $PSScriptRoot "..\logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }

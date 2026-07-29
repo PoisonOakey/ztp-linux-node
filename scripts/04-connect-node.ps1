@@ -7,11 +7,17 @@ This script checks if the VM is running. If not, it boots it headlessly.
 It then queries the VirtualBox Guest Properties to discover the IP address assigned by your local DHCP server and outputs the exact command needed to SSH into the box.
 
 .PARAMETER VmName
-Name of the Virtual Machine. Default: "SRE-Node-01"
+Name of the Virtual Machine. Defaults to the value in config/node.json.
 #>
 param (
-    [string]$VmName = "SRE-Node-01"
+    [string]$VmName
 )
+
+# config/node.json is the single source of truth for lab/hardware settings;
+# an explicit -VmName argument still overrides it for one-off runs.
+. (Join-Path $PSScriptRoot "Get-LabConfig.ps1")
+$Config = Get-LabConfig -ConfigPath (Join-Path $PSScriptRoot "..\config\node.json")
+if (-not $VmName) { $VmName = $Config.vm_name }
 
 $logDir = Join-Path $PSScriptRoot "..\logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }

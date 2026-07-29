@@ -11,15 +11,22 @@ This script performs a fully automated, unattended installation:
 5. Boots the VM headlessly to complete the automated OS installation.
 
 .PARAMETER VmName
-Name of the Virtual Machine. Default: "SRE-Node-01"
+Name of the Virtual Machine. Defaults to the value in config/node.json.
 
 .PARAMETER LabDir
-The directory where the VM disk and ISO are stored. Default: "$HOME\server-lab"
+The directory where the VM disk and ISO are stored. Defaults to the value in config/node.json.
 #>
 param (
-    [string]$VmName = "SRE-Node-01",
-    [string]$LabDir = "$HOME\server-lab"
+    [string]$VmName,
+    [string]$LabDir
 )
+
+# config/node.json is the single source of truth for lab/hardware settings;
+# explicit arguments still override it for one-off runs.
+. (Join-Path $PSScriptRoot "Get-LabConfig.ps1")
+$Config = Get-LabConfig -ConfigPath (Join-Path $PSScriptRoot "..\config\node.json")
+if (-not $VmName) { $VmName = $Config.vm_name }
+if (-not $LabDir) { $LabDir = $Config.lab_dir }
 
 $logDir = Join-Path $PSScriptRoot "..\logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }

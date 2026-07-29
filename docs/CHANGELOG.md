@@ -5,6 +5,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.7.0] - 2026-07-29
+### Added
+- **Single source of truth config:** Added `config/node.json` for VM name, RAM, CPU cores, disk size, and ISO URL, plus a shared `scripts/Get-LabConfig.ps1` loader. `01-host-prep.ps1`, `02-provision-node.ps1`, `03-autoinstall-node.ps1`, `04-connect-node.ps1`, and `Deploy-Node.ps1` all read from it now instead of each hardcoding (and risking drifting out of sync on) their own defaults -- `SRE-Node-01` was previously duplicated independently across four separate files. Explicit command-line arguments still override the config file per-run.
+
 ## [1.6.0] - 2026-07-29
 ### Fixed
 - **Stage 01 restart loop:** `bcdedit /enum "{current}"` was mangled by PowerShell's native-argument marshalling and always returned an error instead of real BCD data, making the idempotency check fail closed and re-demand a restart on every run regardless of actual state. Switched to bare `bcdedit /enum`.

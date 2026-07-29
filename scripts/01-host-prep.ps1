@@ -10,16 +10,23 @@ This script performs a complete host bootstrap:
 4. Provisions the local lab directory and fetches the required Ubuntu Server ISO.
 
 .PARAMETER LabDir
-The directory where the VM and ISO will be stored. Defaults to "$HOME\server-lab".
+The directory where the VM and ISO will be stored. Defaults to the value in config/node.json.
 
 .PARAMETER IsoUrl
-URL to the Ubuntu Server ISO. Defaults to Ubuntu 24.04.4.
+URL to the Ubuntu Server ISO. Defaults to the value in config/node.json.
 #>
 
 param (
-    [string]$LabDir = "$HOME\server-lab",
-    [string]$IsoUrl = "https://releases.ubuntu.com/24.04/ubuntu-24.04.4-live-server-amd64.iso"
+    [string]$LabDir,
+    [string]$IsoUrl
 )
+
+# config/node.json is the single source of truth for lab/hardware settings;
+# explicit -LabDir / -IsoUrl arguments still override it for one-off runs.
+. (Join-Path $PSScriptRoot "Get-LabConfig.ps1")
+$Config = Get-LabConfig -ConfigPath (Join-Path $PSScriptRoot "..\config\node.json")
+if (-not $LabDir) { $LabDir = $Config.lab_dir }
+if (-not $IsoUrl) { $IsoUrl = $Config.iso_url }
 
 $logDir = Join-Path $PSScriptRoot "..\logs"
 if (-not (Test-Path $logDir)) { New-Item -ItemType Directory -Force -Path $logDir | Out-Null }
