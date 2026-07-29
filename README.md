@@ -4,7 +4,7 @@
 
 ---
 
-## Overview
+## 🚀 Overview
 
 An Infrastructure-as-Code (IaC) pipeline that provisions a headless Linux home server via VirtualBox on a Windows host.
 
@@ -12,7 +12,7 @@ The pipeline automates the entire lifecycle: hypervisor provisioning, unattended
 
 ---
 
-## The Problem
+## 🛑 The Problem
 
 - **Broken hardware:** Repurposing a laptop with a broken screen required a 100% headless VM installation
 - **Unstable networking:** VirtualBox bridged Wi-Fi adapters suffer from massive packet loss
@@ -20,7 +20,7 @@ The pipeline automates the entire lifecycle: hypervisor provisioning, unattended
 
 ---
 
-## Architecture & Workflow
+## 🛠️ Architecture & Workflow
 
 ```mermaid
 %%{init: {'themeVariables': { 'background': '#ffffff'}}}%%
@@ -56,27 +56,27 @@ flowchart TD
 
 ---
 
-## Repository Structure
+## 📂 Repository Structure
 
 ```text
-ztp-homelab/
+📦 ztp-homelab/
 │
-├── Deploy-Node.ps1           # Master execution entrypoint
+├── ⚙️ Deploy-Node.ps1           # Master execution entrypoint
 │
-├── scripts/                  # Modular PowerShell IaC stages (Provisioning, Networking, etc.)
-│   └── cloud-init/           # Headless Ubuntu autoinstall configurations
+├── 📁 scripts/                  # Modular PowerShell IaC stages (Provisioning, Networking, etc.)
+│   └── 📁 cloud-init/           # Headless Ubuntu autoinstall configurations
 │
-├── monitoring/               # Observability configuration
-│   └── docker-compose.yml    # Prometheus & Grafana stack
+├── 📁 monitoring/               # Observability configuration
+│   └── 🐳 docker-compose.yml    # Prometheus & Grafana stack
 │
-├── docs/                     # Architecture & troubleshooting documentation
+├── 📁 docs/                     # Architecture & troubleshooting documentation
 │
-└── logs/                     # Auto-generated execution transcripts
+└── 📁 logs/                     # Auto-generated execution transcripts
 ```
 
 ---
 
-## Key Engineering Decisions
+## 🧠 Key Engineering Decisions
 
 | Area | Detail |
 |---|---|
@@ -88,7 +88,7 @@ ztp-homelab/
 
 ---
 
-## Execution
+## ⚡ Execution
 
 The entire pipeline is wrapped in a master orchestrator.
 
@@ -100,7 +100,7 @@ The entire pipeline is wrapped in a master orchestrator.
 
 ---
 
-## Metrics
+## 📈 Metrics
 
 | Metric | Manual Provisioning | Automated Pipeline |
 |---|---|---|
@@ -110,12 +110,12 @@ The entire pipeline is wrapped in a master orchestrator.
 
 ---
 
-## Documentation
+## 📚 Documentation
 - [CHANGELOG.md](docs/CHANGELOG.md) - Version history and bug fixes.
 - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Detailed root-cause analysis for advanced edge cases.
 
 ---
 
-## CI/CD Pipeline
+## ⚙️ CI/CD Pipeline
 
 This project implements a **GitHub Actions** pipeline for automated infrastructure code testing. Every push triggers `PSScriptAnalyzer` to lint the PowerShell orchestration scripts, ensuring strict adherence to best practices and zero syntax errors prior to deployment.
