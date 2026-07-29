@@ -6,3 +6,6 @@
 *.iso
 cidata_mount/
 cidata.vhd
+
+# Secrets (see monitoring/.env.example for the template)
+monitoring/.env

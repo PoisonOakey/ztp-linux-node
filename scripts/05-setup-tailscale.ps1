@@ -3,8 +3,9 @@
 Installs and configures Tailscale on the headless VM node.
 
 .DESCRIPTION
-This script automatically queries the VM for its local IP, then uses SSH to install Tailscale.
-It will prompt you for the SSH password ('sysadmin' by default). 
+This script automatically queries the VM for its local IP, then uses SSH (authenticating
+via your SSH key) to install Tailscale. You may be prompted once for the 'sysadmin'
+account password -- that's sudo, not SSH.
 Once installed, it runs 'tailscale up' and displays an authentication link. You must click this link to add the node to your Tailscale network.
 
 .PARAMETER VmName
@@ -23,8 +24,8 @@ $ipAddress = "127.0.0.1"
 
 # 2. Execute SSH Command to install Tailscale
 Write-Output "`n=================================================="
-Write-Output "Connecting to VM to install Tailscale."
-Write-Output "When prompted, enter the password (default: 'sysadmin')"
+Write-Output "Connecting to VM to install Tailscale (authenticating via SSH key)."
+Write-Output "You may be prompted once for the 'sysadmin' account password -- that's sudo, not SSH."
 Write-Output "After installation, look for the 'tailscale up' authentication link in the output!"
 Write-Output "==================================================`n"
 

@@ -68,7 +68,7 @@ if ($sshReady) {
     Write-Output "You can now connect to your headless node!"
     Write-Output "Run the following command:"
     Write-Output "`n    ssh -p 2222 sysadmin@127.0.0.1"
-    Write-Output "`n(Default password is 'sysadmin')"
+    Write-Output "`n(Authenticates via your SSH key -- no password needed. See TROUBLESHOOTING.md #10 if that ever fails.)"
     Write-Output "=================================================="
 } else {
     Write-Error "Could not connect to localhost:2222. Ensure the VM has finished booting."

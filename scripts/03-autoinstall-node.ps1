@@ -75,6 +75,41 @@ if (-not (Test-Path (Join-Path $CloudInitDir "user-data"))) {
     exit 1
 }
 
+if (-not (Test-Path $LabDir)) { New-Item -ItemType Directory -Force -Path $LabDir | Out-Null }
+
+# ==============================================================================
+# 0b. Prepare SSH key for passwordless authentication
+# ==============================================================================
+# The account password in user-data stays in place as a console/sudo fallback
+# (see TROUBLESHOOTING.md #10), but SSH login itself is key-only. We render the
+# real public key into a throwaway copy under $LabDir -- never back into the
+# tracked scripts/cloud-init/user-data template, so a real key (or a stale
+# diff) never ends up in the repo.
+Write-Output "`n-> Preparing SSH key for passwordless authentication..."
+
+$sshKeygenPath = if (Test-Path "$env:WINDIR\sysnative\OpenSSH\ssh-keygen.exe") { "$env:WINDIR\sysnative\OpenSSH\ssh-keygen.exe" } else { "$env:WINDIR\System32\OpenSSH\ssh-keygen.exe" }
+$sshKeyDir = Join-Path $HOME ".ssh"
+$publicKeyPath = @("id_ed25519.pub", "id_rsa.pub") | ForEach-Object { Join-Path $sshKeyDir $_ } | Where-Object { Test-Path $_ } | Select-Object -First 1
+
+if (-not $publicKeyPath) {
+    Write-Output "   [*] No existing SSH key found in $sshKeyDir. Generating a new ed25519 keypair..."
+    if (-not (Test-Path $sshKeyDir)) { New-Item -ItemType Directory -Force -Path $sshKeyDir | Out-Null }
+    $newKeyPath = Join-Path $sshKeyDir "id_ed25519"
+    & $sshKeygenPath -t ed25519 -f $newKeyPath -N '""' -q
+    $publicKeyPath = "$newKeyPath.pub"
+}
+
+$publicKey = (Get-Content $publicKeyPath -Raw).Trim()
+if (-not $publicKey -or $publicKey -notmatch '^ssh-') {
+    Write-Error "Failed to read a valid SSH public key from $publicKeyPath. Aborting before writing user-data to avoid locking SSH out entirely."
+    exit 1
+}
+Write-Output "   [*] Using SSH key: $publicKeyPath"
+
+$RenderedUserData = Join-Path $LabDir "user-data.rendered"
+# SSH public keys are base64 (no '$'), so no regex-replacement escaping is needed for the substitution value.
+(Get-Content (Join-Path $CloudInitDir "user-data") -Raw) -replace 'INSERT_SSH_KEY_HERE', $publicKey | Set-Content -Path $RenderedUserData -NoNewline
+
 # ==============================================================================
 # 1. Generate the CIDATA Virtual Disk
 # ==============================================================================
@@ -123,7 +158,7 @@ $MountDir = "$($Volume.DriveLetter):\"
 # 2. Inject Configuration Files
 # ==============================================================================
 Write-Output "-> Injecting user-data and meta-data..."
-Copy-Item -Path (Join-Path $CloudInitDir "user-data") -Destination $MountDir -Force
+Copy-Item -Path $RenderedUserData -Destination (Join-Path $MountDir "user-data") -Force
 Copy-Item -Path (Join-Path $CloudInitDir "meta-data") -Destination $MountDir -Force
 
 # Small sleep to ensure file locks are released

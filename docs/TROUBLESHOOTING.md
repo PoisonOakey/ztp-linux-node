@@ -152,5 +152,23 @@ The `-t` flag (pseudo-TTY) was added to all SSH commands in scripts `05` and `06
 
 ---
 
+## 10. Locked Out After Switching to SSH Key Auth
+
+**Symptoms:**
+- `ssh -p 2222 sysadmin@127.0.0.1` hangs or is rejected after a fresh install.
+- `03-autoinstall-node.ps1` either failed before completing, or completed but the injected key doesn't match the one on your machine (e.g. you ran it once, generated a key, then deleted `~/.ssh` before a second run).
+
+**Root Cause:**
+`user-data` sets `allow-pw: false`, so SSH password authentication is disabled entirely — the VM only accepts the public key that was rendered into `user-data` at install time (`03-autoinstall-node.ps1` reads `~/.ssh/id_ed25519.pub` or `id_rsa.pub`, generating one if neither exists, and writes it into a throwaway copy under `$LabDir`, never into the tracked template). If that key is later regenerated, moved, or the render step silently used a stale/empty value, SSH access breaks.
+
+**Resolution:**
+This only disables *SSH* password login — the account password (`sysadmin`, see the `identity` block in `user-data`) still works for a **local console login**, since that's unaffected by the SSH daemon setting:
+1. Open the VM directly in the VirtualBox GUI (not headless) and log in at the console with `sysadmin` / the password documented in `user-data`.
+2. From the console, fix `~/.ssh/authorized_keys` manually, or re-run `03-autoinstall-node.ps1` (which will re-provision with your current public key) to reinstall cleanly.
+
+The script also fails loudly (`exit 1`) before writing `user-data` at all if it can't read back a well-formed `ssh-...` public key, specifically to avoid ever shipping a VM with authorized-keys empty and SSH password auth disabled.
+
+---
+
 ## Conclusion
 SysOps automation relies heavily on environmental consistency. When debugging headless installations, always rule out physical file corruption (like the truncated ISO) before tearing apart your bootloader configurations!

@@ -23,19 +23,32 @@ $ipAddress = "127.0.0.1"
 
 # 2. SCP the monitoring directory to the VM
 Write-Output "`n=================================================="
-Write-Output "Copying monitoring configuration to the VM..."
-Write-Output "When prompted, enter the password (default: 'sysadmin')"
+Write-Output "Copying monitoring configuration to the VM (authenticating via SSH key)..."
 Write-Output "==================================================`n"
 
 $monitoringDir = Join-Path $PSScriptRoot "..\monitoring"
+
+# Ensure a real secrets file exists before it gets copied to the VM.
+# monitoring/.env is gitignored, so a fresh clone won't have one yet --
+# generate one from .env.example rather than silently deploying with
+# Grafana's built-in admin/admin default.
+$envFile = Join-Path $monitoringDir ".env"
+$envExampleFile = Join-Path $monitoringDir ".env.example"
+if (-not (Test-Path $envFile)) {
+    Write-Output "-> No monitoring/.env found. Generating one from .env.example..."
+    $generatedPassword = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
+    (Get-Content $envExampleFile) -replace 'GF_SECURITY_ADMIN_PASSWORD=.*', "GF_SECURITY_ADMIN_PASSWORD=$generatedPassword" | Set-Content $envFile
+    Write-Output "   [*] Generated Grafana admin password and saved it to monitoring/.env (gitignored)."
+}
+
 $scpPath = if (Test-Path "$env:WINDIR\sysnative\OpenSSH\scp.exe") { "$env:WINDIR\sysnative\OpenSSH\scp.exe" } else { "$env:WINDIR\System32\OpenSSH\scp.exe" }
-# Copy the monitoring directory to the home directory of sysadmin on the VM
+# Copy the monitoring directory (including .env) to the home directory of sysadmin on the VM
 & $scpPath -P 2222 -r -o StrictHostKeyChecking=no $monitoringDir sysadmin@$ipAddress`:~/
 
 # 3. SSH in to install Docker and start the stack
 Write-Output "`n=================================================="
 Write-Output "Installing Docker and starting Prometheus/Grafana..."
-Write-Output "When prompted, enter the password again (default: 'sysadmin')"
+Write-Output "You may be prompted once for the 'sysadmin' account password -- that's sudo, not SSH."
 Write-Output "==================================================`n"
 
 $sshCommand = @"
@@ -52,7 +65,7 @@ $sshPath = if (Test-Path "$env:WINDIR\sysnative\OpenSSH\ssh.exe") { "$env:WINDIR
 
 Write-Output "`n=================================================="
 Write-Output "[OK] Monitoring Stack Deployed!"
-Write-Output "Grafana is running at: http://localhost:3000 (Login: admin / sysadmin)"
+Write-Output "Grafana is running at: http://localhost:3000 (Login: admin / see monitoring/.env for password)"
 Write-Output "Prometheus is running at: http://localhost:9090"
 Write-Output "(Or access them securely via your new Tailscale IP!)"
 Write-Output "=================================================="

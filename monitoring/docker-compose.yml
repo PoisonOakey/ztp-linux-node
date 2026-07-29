@@ -13,6 +13,25 @@ services:
       - "9090:9090"
     restart: unless-stopped
 
+  node_exporter:
+    image: prom/node-exporter:latest
+    container_name: node_exporter
+    restart: unless-stopped
+    pid: host
+    # Bind-mount the host's /proc, /sys, and / so metrics reflect the VM,
+    # not the node_exporter container's own tiny filesystem.
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/rootfs:ro
+    command:
+      - '--path.procfs=/host/proc'
+      - '--path.sysfs=/host/sys'
+      - '--path.rootfs=/rootfs'
+      - '--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)'
+    ports:
+      - "9100:9100"
+
   grafana:
     image: grafana/grafana:latest
     container_name: grafana
@@ -21,8 +40,8 @@ services:
     volumes:
       - grafana_data:/var/lib/grafana
     restart: unless-stopped
-    environment:
-      - GF_SECURITY_ADMIN_PASSWORD=sysadmin
+    env_file:
+      - .env
 
 volumes:
   prometheus_data:

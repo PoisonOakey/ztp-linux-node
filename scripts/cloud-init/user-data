@@ -6,11 +6,16 @@ autoinstall:
     layout: us
   ssh:
     install-server: true
-    allow-pw: true
+    # Password SSH login is disabled -- auth is via the injected key below.
+    # The account password (set under identity) still works for local
+    # console login (VirtualBox GUI) and for sudo prompts inside a session.
+    allow-pw: false
+    authorized-keys:
+      - INSERT_SSH_KEY_HERE
   identity:
     hostname: sre-node-01
     username: sysadmin
-    # Password is "sysadmin"
+    # Password is "sysadmin" -- console/sudo fallback only, see TROUBLESHOOTING.md #10
     password: "$6$rounds=656000$Mip5VLtMEH/QG37A$bAN6fRqRU0acSLysrt45xvohtlBT0W.qwh3kbG9i9FrX5Is1Rxep9RxGHFfTjzVC/t4h2l97Sw2SI4W5jDDJp1"
 
   storage:
