@@ -34,17 +34,19 @@ The hypervisor here is VirtualBox on a Windows host, which makes the provisionin
 
 ## 📸 The Result
 
+One pipeline run, end to end: metrics collected, an alert fired, a human notified.
+
 ![Grafana Node Overview dashboard](docs/images/dashboard.png)
 
-Grafana comes up already wired — datasource and dashboard are provisioned from this repository, not clicked in by hand. Panels deliberately mirror the alert rules, so what is watched and what pages are the same signals.
+Datasource and dashboard are provisioned from this repository, never clicked in. Panels mirror the alert rules, so what is watched and what pages you are the same signals.
 
 ![TargetDown alert firing in Prometheus](docs/images/alert-firing.png)
 
-`node_exporter` stopped on purpose. Prometheus saw the failed scrape, `TargetDown` waited out its `for: 2m` grace period, then fired with the severity and labels defined in [`alert_rules.yml`](monitoring/alert_rules.yml). Four other rules stayed inactive.
+`node_exporter` stopped on purpose. `TargetDown` waited out its `for: 2m` grace period, then fired with the labels defined in [`alert_rules.yml`](monitoring/alert_rules.yml). The other four rules stayed quiet.
 
 ![Alert delivered to Discord, firing then resolved](docs/images/discord.png)
 
-Alertmanager delivers it. The same alert firing and then resolving once the container came back — an alert that never closes is as useless as one that never opens. The runbook link is carried on the notification itself, so the fix is one click from the page telling you something is wrong.
+Firing, then resolved once the container came back — an alert that never closes is as useless as one that never opens. The runbook link rides on the notification itself.
 
 ---
 
@@ -77,7 +79,7 @@ flowchart TD
 
 PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both.
 
-The split is by tool boundary, not file numbering — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. The move to Ansible wasn't about the tool's reputation: the same defect, a native command failing while PowerShell carried on to print a success banner, got fixed by hand in four separate scripts. In Ansible a play halts at the failing task and names it. It bought failure reporting and provable idempotency — not scale, speed, or capability. There is one node.
+The split follows tool boundaries, not file order — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. Ansible earned the second half after one bug — a native command failing while PowerShell printed a success banner — was patched by hand in four separate scripts. A play halts at the failing task and names it: failure reporting and provable idempotency, not scale. There is one node.
 
 | Layer | Technology | Role |
 |---|---|---|
