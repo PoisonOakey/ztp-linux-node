@@ -244,6 +244,8 @@ This is intentionally **not** automated by the pipeline, and that's a deliberate
 
 Note that if you're physically at the host machine, you don't need any of this -- `http://localhost:3000` already works via the existing VirtualBox NAT port-forward. Tailscale only matters for devices that *aren't* the host.
 
+> **If the restart demand genuinely persists across reboots, check *how* you rebooted.** Windows ships with Fast Startup enabled by default, which makes "Shut down" a hybrid operation: the kernel session is hibernated to `hiberfil.sys` and restored on next power-on rather than reinitialised. Boot-time settings like `hypervisorlaunchtype` may not take effect. **"Restart" always performs a full cold boot and bypasses Fast Startup**, so it is the more reliable choice here — the opposite of most people's intuition.
+
 ---
 
 ## 14. Stage 03 Fails With "UUID Does Not Match The Value Stored In The Media Registry"
@@ -296,6 +298,35 @@ The scripts pass `-o StrictHostKeyChecking=no`, which is often assumed to cover 
 & $sshKeygenPath -R "[127.0.0.1]:2222"
 ```
 `ssh-keygen -R` is a no-op when there is no matching entry, so this is safe on a first run. Note the bracket syntax — a non-default port is part of the `known_hosts` key, and `ssh-keygen -R 127.0.0.1` will not match an entry stored as `[127.0.0.1]:2222`.
+
+---
+
+## 16. Stage 01 Demands A Restart Again After Installing WSL
+
+**Symptoms:**
+- The pipeline has been running cleanly, with stage 01 reporting `[OK] BCD hypervisor launch type is already disabled.` on every run.
+- You install WSL to set up the Ansible control node.
+- The next run of `Deploy-Node.ps1` reports `[*] Disabling BCD hypervisor launch type...` and stops with `CRITICAL: Hyper-V features were modified. A system restart is REQUIRED`.
+
+**Root Cause:**
+This is not a regression — it is the two halves of the project disagreeing, and stage 01 winning.
+
+`wsl --install` enables the `VirtualMachinePlatform` feature and sets `hypervisorlaunchtype` to `Auto`, because WSL 2 is a virtual machine and needs the Windows hypervisor. `01-host-prep.ps1` exists to do the exact opposite: it disables that feature and sets `hypervisorlaunchtype` to `Off` so VirtualBox gets direct access to the CPU's virtualization extensions rather than running as a client of Hyper-V.
+
+So installing WSL undoes what stage 01 established, and the next run correctly re-applies it. A BCD change only takes effect at boot, hence the restart.
+
+**Resolution:**
+Reboot once and continue. It should not recur, **provided the WSL distribution is WSL 1**.
+
+WSL 1 is a syscall translation layer with no VM and no hypervisor dependency, so it keeps working after the hypervisor is disabled. That is the main reason [ANSIBLE-SETUP.md](ANSIBLE-SETUP.md) specifies WSL 1 rather than WSL 2. If the distribution is WSL 2, the conflict is permanent and the two will fight on every run — convert it:
+
+```powershell
+wsl --set-version <distro> 1
+```
+
+Note that **Docker Desktop stops working** while the hypervisor is disabled, since its backing distribution is WSL 2. That is a pre-existing tension on any host running both Docker Desktop and VirtualBox, and it does not affect this pipeline — the monitoring stack runs in Docker *inside the VM*, not on the Windows host.
+
+If the restart demand repeats after rebooting, see the Fast Startup note at the end of item 11.
 
 ---
 

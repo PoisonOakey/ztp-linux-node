@@ -66,6 +66,8 @@ uname -r
 
 Expect a kernel like `4.4.0-26100-Microsoft`. If it ends in `-microsoft-standard-WSL2`, you are on WSL 2 and must convert.
 
+> **Expect one extra reboot here.** `wsl --install` enables `VirtualMachinePlatform` and sets `hypervisorlaunchtype` to `Auto` regardless of which WSL version you end up on. `01-host-prep.ps1` disables both so VirtualBox gets direct access to the CPU's virtualization extensions, so the next pipeline run will detect the change, re-apply it, and require a restart. This happens once. With WSL 1 it does not recur, because WSL 1 needs no hypervisor. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) #16.
+
 ### 2. Fix DNS
 
 WSL 1 generates `/etc/resolv.conf` from the Windows network configuration. If a VPN client manages DNS on the host — Tailscale, in this project's case — Windows reports placeholder addresses that WSL cannot use:
