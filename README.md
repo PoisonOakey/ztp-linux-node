@@ -1,18 +1,23 @@
-# ZTP Homelab Automation
+# ZTP — Zero-Touch Provisioning Pipeline
 
-**Ansible** · **Docker** · **Prometheus** · **Alertmanager** · **Grafana** · **cloud-init** · **Tailscale** · **GitHub Actions** · **PowerShell** · **Ubuntu Linux**
+**Ansible** · **Prometheus** · **Alertmanager** · **Grafana** · **Docker** · **cloud-init** · **Tailscale** · **GitHub Actions** · **Ubuntu Linux** · **PowerShell**
 
-> An automated Infrastructure-as-Code (IaC) pipeline that provisions, configures, and secures a headless Ubuntu Server node via VirtualBox on a Windows host.
->
-> Zero-touch OS install, declarative configuration management, and a monitoring stack with alerting — from one command.
+> One command takes a bare hypervisor to a Linux node that is installed, configured, monitored, and alerting — with no human input.
 
 ---
 
 ## 🚀 Overview
 
-An Infrastructure-as-Code (IaC) pipeline that provisions a headless Linux home server via VirtualBox on a Windows host.
+Infrastructure as Code across four layers, each owned by the tool that should own it:
 
-The pipeline automates the entire lifecycle: hypervisor provisioning, unattended OS installation, VPN routing, and Docker stack deployment.
+| | |
+|---|---|
+| **Provision** | PowerShell drives the hypervisor, disk and boot media. Idempotent, exit-code checked, fails on a deadline rather than hanging |
+| **Install** | cloud-init performs an unattended Ubuntu install from a generated seed disk, with the operator's SSH key injected at build time |
+| **Configure** | Ansible brings the running node to desired state — Docker, Tailscale, and a monitoring stack. A second run reports zero changes |
+| **Observe** | Prometheus scrapes the host, Grafana is provisioned as code, and five alert rules route through Alertmanager to a human with a [runbook](docs/RUNBOOK.md) attached |
+
+The hypervisor here is VirtualBox on a Windows host, which makes the provisioning layer platform-specific by design. The configuration layer is not: the Ansible roles target any Debian-family host, and only the inventory is lab-specific.
 
 ---
 
