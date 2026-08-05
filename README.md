@@ -25,6 +25,18 @@ The pipeline automates the entire lifecycle: hypervisor provisioning, unattended
 
 ---
 
+## 📸 The Result
+
+![Grafana Node Overview dashboard](docs/images/dashboard.png)
+
+Grafana comes up already wired — datasource and dashboard are provisioned from this repository, not clicked in by hand. Panels deliberately mirror the alert rules, so what is watched and what pages are the same signals.
+
+![TargetDown alert firing in Prometheus](docs/images/alert-firing.png)
+
+`node_exporter` stopped on purpose. Prometheus saw the failed scrape, `TargetDown` waited out its `for: 2m` grace period, then fired with the severity and labels defined in [`alert_rules.yml`](monitoring/alert_rules.yml). Four other rules stayed inactive.
+
+---
+
 ## 🛠️ Architecture & Workflow
 
 ```mermaid
