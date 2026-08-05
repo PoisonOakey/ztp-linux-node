@@ -48,7 +48,9 @@ flowchart TD
     D --> E
 ```
 
-PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both. The boundary is the tool's job, not the file numbering — [why it matters](docs/ROADMAP.md).
+PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both.
+
+The split is by tool boundary, not file numbering — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. The move to Ansible wasn't about the tool's reputation: the same defect, a native command failing while PowerShell carried on to print a success banner, got fixed by hand in four separate scripts. In Ansible a play halts at the failing task and names it. It bought failure reporting and provable idempotency — not scale, speed, or capability. There is one node.
 
 | Layer | Technology | Role |
 |---|---|---|

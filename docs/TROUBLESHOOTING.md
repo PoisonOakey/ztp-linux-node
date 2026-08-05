@@ -170,7 +170,7 @@ It did not address why the failure was **silent**. `$ErrorActionPreference = 'St
 
 Both scripts were fixed to check `$LASTEXITCODE` after every `ssh`/`scp` call and throw with the exit status, so the banner could only print on a run that actually succeeded. This is the same defect class as the stale-medium failure in item 14, and it was ultimately fixed by hand in four separate scripts.
 
-That repetition is why configuration management moved to Ansible. `05-setup-tailscale.ps1` and `06-setup-monitoring.ps1` no longer exist — the `tailscale` and `monitoring` roles replaced them, and in Ansible a play halts at the failing task and names it. The reporting is structural rather than a convention each script has to remember. `Deploy-Node.ps1` applies the same discipline to the Ansible invocation itself: it checks the exit status and fails loudly rather than printing a completion banner over a failed run. See [ROADMAP.md](ROADMAP.md).
+That repetition is why configuration management moved to Ansible. `05-setup-tailscale.ps1` and `06-setup-monitoring.ps1` no longer exist — the `tailscale` and `monitoring` roles replaced them, and in Ansible a play halts at the failing task and names it. The reporting is structural rather than a convention each script has to remember. `Deploy-Node.ps1` applies the same discipline to the Ansible invocation itself: it checks the exit status and fails loudly rather than printing a completion banner over a failed run. See the Architecture section of the [README](../README.md).
 
 ---
 

@@ -8,7 +8,7 @@ This script acts as the orchestrator for the entire pipeline.
 It runs the PowerShell provisioning stages 01 through 04, waits for the
 unattended OS installation (stage 03) to finish, and then hands the running node
 to Ansible for configuration management. Provisioning and configuration are
-deliberately separate concerns -- see docs/ROADMAP.md.
+deliberately separate concerns -- see the Architecture section of README.md.
 
 Ansible runs from WSL, since there is no native Windows control node. If WSL or
 Ansible is unavailable the script fails with an actionable message rather than
@@ -117,7 +117,7 @@ Start-Sleep -Seconds 15
 # 5. Configuration management (Ansible)
 # Provisioning stops here. Everything past this point configures a Linux node
 # that is already running, which is Ansible's job rather than PowerShell's --
-# see docs/ROADMAP.md. Ansible has no native Windows control node, so it runs
+# see README.md. Ansible has no native Windows control node, so it runs
 # from WSL; docs/ANSIBLE-SETUP.md covers the one-time setup.
 Write-Output "`n>>> Executing configuration management with Ansible..."
 
