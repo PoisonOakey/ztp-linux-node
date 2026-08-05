@@ -98,19 +98,50 @@ Everything after that configures a Linux node that is already running, which is 
 | **Resilient Orchestration** | Re-runnable from any state: stale VirtualBox media registrations and `known_hosts` pins are cleared before rebuild, the cloud-init disk is detached in a `finally` so a mid-run failure cannot strand a mounted VHD, `$LASTEXITCODE` is checked after every `VBoxManage` call that must succeed, and the install wait-loop fails on a deadline instead of hanging |
 | **Proved, Not Assumed** | Idempotency is verified rather than hoped for -- a second `site.yml` run must report `changed=0`. The generated Grafana password is persisted on the control node precisely so it does not rotate on every run and break that property |
 | **Process Bypasses** | Dynamic `$env:WINDIR\sysnative` bypasses 32-bit Windows redirection for native 64-bit SSH execution |
-| **Zero-Trust Access** | Tailscale mesh VPN enables secure remote access (one-time browser device approval) without complex router port-forwarding |
+| **Zero-Trust Access** | Tailscale mesh VPN enables secure remote access without router port-forwarding. Device approval needs a browser by default; supplying your own reusable auth key makes enrolment unattended. No key ships with this repository |
 
 ---
 
 ## ⚡ Execution
 
-The entire pipeline is wrapped in a master orchestrator.
+### Before the first run
+
+**1. Ansible control node (required).** The configuration stages run from WSL, since Ansible has no native Windows control node. This is a one-time setup and it must be **WSL 1**, not WSL 2 — WSL 2 needs the Windows hypervisor, which stage 01 disables so VirtualBox gets direct access to the CPU's virtualization extensions. Full walkthrough in [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md).
+
+If it is missing, the pipeline provisions the VM and then stops with a message saying so. It does not skip configuration silently.
+
+**2. Tailscale auth key (optional).** Without one, a freshly built node cannot join your tailnet unattended — device approval needs a human to open a URL in a browser, so the playbook stops and tells you to run `sudo tailscale up` on the node once.
+
+Supplying a key makes enrolment hands-off on every rebuild. Generate your own:
+
+- Tailscale admin console → **Settings → Keys → Generate auth key**
+- Enable **Reusable** if you intend to rebuild the VM — a one-off key authenticates a single node and then stops working
+- Save it on the control node:
+
+```bash
+echo 'tskey-auth-...' > ansible/.tailscale_auth_key
+```
+
+That file is gitignored and stays on your machine. **It is a credential** — it grants the ability to add devices to your tailnet, so give it an expiry and never commit or paste it anywhere. Nothing in this repository ships a key; each user creates their own.
+
+VirtualBox itself needs no preparation — stage 01 installs it via `winget` and downloads the Ubuntu ISO.
+
+### Run it
 
 **Open PowerShell as Administrator** and execute:
+
 ```powershell
 .\Deploy-Node.ps1
 ```
-*(The orchestrator will automatically pause and poll the VM state while the background OS installation finishes).*
+
+The orchestrator provisions the VM, waits for the unattended OS install to finish, then hands the running node to `ansible-playbook`. You will be prompted once for the node's `sudo` password.
+
+A second run of the playbook alone should report `changed=0`:
+
+```bash
+cd ansible
+ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
+```
 
 ---
 

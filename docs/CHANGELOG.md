@@ -6,6 +6,9 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- **README states its prerequisites.** The Execution section previously said only "run `Deploy-Node.ps1`". Anyone cloning the repository would provision a VM and then hit a message about Ansible being missing, with no prior warning that a WSL control node is required. It now covers both prerequisites up front: the WSL 1 control node (and why WSL 1 rather than WSL 2), and the optional Tailscale auth key -- including how to generate your own, why it should be reusable, and that it is a credential to be given an expiry and never committed. No key ships with this repository; each user creates their own.
+
 ### Added
 - **Zero-touch Tailscale enrolment:** a pre-authorised key saved to `ansible/.tailscale_auth_key` on the control node is read automatically, so a rebuilt VM joins the tailnet with no human step. The file is gitignored and follows the same pattern as the generated Grafana password -- a credential that lives beside the playbook and never enters the repository. A key passed as an extra-var still takes precedence. Without a key the role behaves as before, stopping with instructions rather than hanging on a browser prompt it cannot answer.
 - **Actionable failure when a key is rejected:** the task carrying the key is `no_log`, which also censored its failure output and reported an expired key as an opaque `non-zero return code`. The task is now a `block`/`rescue` that reports the likely cause -- expired, revoked, or a one-off key already spent -- and names the file to replace, without echoing the credential.
