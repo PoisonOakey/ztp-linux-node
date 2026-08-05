@@ -1,0 +1,16 @@
+apiVersion: 1
+
+# Wires Grafana to Prometheus on first boot. Without this the stack deploys and
+# then waits for a human to click through Connections -> Add data source, which
+# is not zero-touch.
+#
+# The uid is fixed rather than generated because the dashboard JSON references
+# it. Leave it alone unless you change it there too.
+datasources:
+  - name: Prometheus
+    uid: prometheus
+    type: prometheus
+    access: proxy
+    url: http://prometheus:9090
+    isDefault: true
+    editable: false

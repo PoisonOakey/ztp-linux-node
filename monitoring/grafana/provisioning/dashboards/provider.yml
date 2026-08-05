@@ -1,0 +1,19 @@
+apiVersion: 1
+
+# Loads every dashboard JSON found under the path below on startup, and picks up
+# edits to those files without a restart.
+#
+# allowUiUpdates is false on purpose: dashboards are defined in this repository,
+# so a change made by clicking in the browser would be silently overwritten on
+# the next deploy. Better to reject the edit than to lose it.
+providers:
+  - name: 'ztp-homelab'
+    orgId: 1
+    folder: ''
+    type: file
+    disableDeletion: false
+    allowUiUpdates: false
+    updateIntervalSeconds: 30
+    options:
+      path: /etc/grafana/dashboards
+      foldersFromFilesStructure: false

@@ -38,6 +38,13 @@ services:
       - "3000:3000"
     volumes:
       - grafana_data:/var/lib/grafana
+      # Datasource and dashboard provider definitions, read on startup. Without
+      # these Grafana comes up empty and needs a human to click through adding a
+      # data source before any panel renders.
+      - ./grafana/provisioning:/etc/grafana/provisioning:ro
+      # Dashboard JSON. Mounted outside /var/lib/grafana so it does not collide
+      # with the grafana_data volume.
+      - ./grafana/dashboards:/etc/grafana/dashboards:ro
     restart: unless-stopped
     env_file:
       - .env

@@ -34,6 +34,19 @@
     - docker-compose.yml
     - prometheus.yml
     - alert_rules.yml
+
+# Grafana's provisioning tree is copied whole rather than file by file: it is a
+# directory structure Grafana walks on startup, and listing each file would mean
+# editing this role every time a dashboard is added.
+- name: Copy the Grafana provisioning tree
+  ansible.builtin.copy:
+    src: "{{ monitoring_src }}/grafana/"
+    dest: "{{ monitoring_dest }}/grafana/"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+    directory_mode: "0755"
+  become: true
   register: monitoring_config
 
 - name: Render the Grafana environment file

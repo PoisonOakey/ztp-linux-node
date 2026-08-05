@@ -63,7 +63,7 @@ The split is by tool boundary, not file numbering — stage 04 drives `VBoxManag
 | **OS Automation** | Cloud-Init / Subiquity | Unattended install, seeded from a temporary disk |
 | **Configuration** | Ansible | Declarative desired state, run from WSL |
 | **Secure Access** | Tailscale | Mesh VPN, no inbound ports |
-| **Observability** | Prometheus / Grafana / node_exporter | Host metrics scraped from the VM, five alert rules evaluated |
+| **Observability** | Prometheus / Grafana / node_exporter | Host metrics from the VM, five alert rules, dashboard provisioned as code |
 
 ---
 
