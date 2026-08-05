@@ -104,17 +104,18 @@ Each of these came from a failure. The ones with a root-cause writeup are in [TR
 
 ## ⚡ Execution
 
-**Required:** an Ansible control node on WSL **1**. One-time setup — [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md). Miss it and the pipeline provisions the VM, then stops and says so.
+> [!IMPORTANT]
+> **Required —** an Ansible control node on WSL **1**. One-time setup: [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md).
+> Miss it and the pipeline provisions the VM, then stops and says so.
 
-**Optional:** a Tailscale auth key, for unattended tailnet enrolment. Generate your own (Settings → Keys, **reusable**), then:
+> [!TIP]
+> **Optional —** a Tailscale auth key, for unattended tailnet enrolment. Generate your own (Settings → Keys, **reusable**), then:
+> ```bash
+> echo 'tskey-auth-...' > ansible/.tailscale_auth_key   # gitignored, never committed
+> ```
+> Without one, approve the device in a browser once.
 
-```bash
-echo 'tskey-auth-...' > ansible/.tailscale_auth_key   # gitignored, never committed
-```
-
-Without it, approve the device in a browser once. VirtualBox and the ISO are handled by stage 01.
-
-Then, **as Administrator**:
+VirtualBox and the ISO are handled by stage 01. Then, **as Administrator**:
 
 ```powershell
 .\Deploy-Node.ps1
