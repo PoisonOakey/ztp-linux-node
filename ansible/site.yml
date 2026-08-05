@@ -30,3 +30,8 @@
   roles:
     # Replaces the apt/systemctl half of 06-setup-monitoring.ps1.
     - docker
+
+    # Replaces 05-setup-tailscale.ps1. Joining a tailnet needs a human to approve
+    # the device unless a pre-authorised key is supplied, so this role reports
+    # what to do rather than pretending to automate it. See the role's defaults.
+    - tailscale

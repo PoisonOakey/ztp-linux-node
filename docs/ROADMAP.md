@@ -67,7 +67,7 @@ ansible/
 ├── site.yml               top-level play
 └── roles/
     ├── docker/            [done]    install docker.io + docker-compose-v2, enable the service
-    ├── tailscale/         [pending] install, run `tailscale up`, surface the auth URL
+    ├── tailscale/         [done]    install from the signed apt repo, join the tailnet if not already on it
     └── monitoring/        [pending] template .env, copy monitoring/, bring the stack up
 ```
 

@@ -1,0 +1,97 @@
+---
+# Replaces scripts/05-setup-tailscale.ps1, which ran:
+#   curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscale up
+# over SSH, on every deployment, regardless of whether the node was already
+# connected.
+#
+# Two things change. The install no longer pipes an unverified remote script into
+# a root shell -- Tailscale's signed apt repository is used instead. And
+# `tailscale up` is no longer run unconditionally: an already-authenticated node
+# is left alone, which is what makes this re-runnable.
+
+- name: Install the Tailscale repository signing key
+  ansible.builtin.get_url:
+    url: "{{ tailscale_keyring_url }}"
+    dest: "{{ tailscale_keyring_path }}"
+    mode: "0644"
+    owner: root
+    group: root
+  become: true
+
+- name: Add the Tailscale apt repository
+  ansible.builtin.get_url:
+    url: "{{ tailscale_repo_url }}"
+    dest: /etc/apt/sources.list.d/tailscale.list
+    mode: "0644"
+    owner: root
+    group: root
+  become: true
+  register: tailscale_repo
+
+- name: Install Tailscale
+  ansible.builtin.apt:
+    name: tailscale
+    state: present
+    update_cache: true
+    cache_valid_time: 3600
+  become: true
+
+- name: Ensure the tailscaled service is enabled and running
+  ansible.builtin.systemd_service:
+    name: tailscaled
+    enabled: true
+    state: started
+  become: true
+
+# `tailscale status --json` exits non-zero when the node is logged out, which is
+# a state we handle rather than a failure, hence failed_when: false.
+- name: Read the current Tailscale backend state
+  ansible.builtin.command: tailscale status --json
+  register: tailscale_status_raw
+  changed_when: false
+  failed_when: false
+  become: true
+
+- name: Determine whether the node is already on the tailnet
+  ansible.builtin.set_fact:
+    tailscale_connected: >-
+      {{
+        (tailscale_status_raw.stdout | from_json).BackendState | default('') == 'Running'
+        if (tailscale_status_raw.stdout | trim | length) > 0
+        else false
+      }}
+
+- name: Report that the node is already authenticated
+  ansible.builtin.debug:
+    msg: >-
+      Node is already on the tailnet as
+      {{ (tailscale_status_raw.stdout | from_json).Self.DNSName | default('unknown') | regex_replace('\.$', '') }}
+      ({{ (tailscale_status_raw.stdout | from_json).Self.TailscaleIPs[0] | default('no IPv4') }})
+  when: tailscale_connected
+
+# Only reached on a node that is not yet on the tailnet.
+- name: Authenticate the node with a pre-authorised key
+  ansible.builtin.command: "tailscale up --auth-key={{ tailscale_auth_key }}"
+  become: true
+  # The key must not appear in output or in the transcript.
+  no_log: true
+  changed_when: true
+  when:
+    - not tailscale_connected
+    - tailscale_auth_key | length > 0
+
+# `tailscale up` without a key blocks until a human opens the printed URL in a
+# browser. Ansible buffers task output until the task finishes, so running it
+# here would hang the play with the URL invisible. Failing with instructions is
+# honest; pretending to automate a step that requires a person is not.
+- name: Stop with instructions when the node needs interactive authentication
+  ansible.builtin.fail:
+    msg: >-
+      Tailscale is installed but this node has not joined a tailnet, and no
+      tailscale_auth_key was supplied. Device approval requires a human, so it is
+      not automated here. Either run `sudo tailscale up` on the node and open the
+      URL it prints, or re-run this play with
+      -e tailscale_auth_key=tskey-auth-... from the Tailscale admin console.
+  when:
+    - not tailscale_connected
+    - tailscale_auth_key | length == 0

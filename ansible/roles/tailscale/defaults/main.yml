@@ -1,0 +1,19 @@
+---
+# Optional pre-authorised key from the Tailscale admin console.
+#
+# Left empty by default and deliberately not committed with a value. When empty,
+# the role will not attempt to authenticate a disconnected node -- it reports
+# what to run instead. When set, the node joins the tailnet with no human step.
+#
+# Supply it at run time rather than in this file:
+#   ansible-playbook site.yml -e tailscale_auth_key=tskey-auth-...
+# or from an environment variable, or ansible-vault. It is a credential; treat it
+# like the generated Grafana password, which is likewise never committed.
+tailscale_auth_key: ""
+
+# Tailscale is not in Ubuntu's archive, so its own signed repository is added.
+# The release codename is taken from gathered facts rather than hardcoded, so
+# this keeps working when the node's Ubuntu version changes.
+tailscale_keyring_url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_facts['distribution_release'] }}.noarmor.gpg"
+tailscale_repo_url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_facts['distribution_release'] }}.tailscale-keyring.list"
+tailscale_keyring_path: /usr/share/keyrings/tailscale-archive-keyring.gpg
