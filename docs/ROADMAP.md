@@ -26,7 +26,9 @@ Provisioning and configuration are separate concerns, and this repository curren
 
 Stages 01–04 provision a machine on a Windows host — creating a VM, driving `diskpart`, mounting media, booting it. That is legitimately PowerShell's job and it stays.
 
-Stages 05 and 06 configure a Linux node that is already running: `apt-get install`, `systemctl enable --now`, `docker compose up -d`, plus a hand-written idempotency guard (`dpkg --configure -a || true`). That is Ansible's core competency, currently reimplemented by hand.
+Stages 05 and 06 configure a Linux node that is already running: `apt-get install`, `systemctl enable --now`, `docker compose up -d`, plus a hand-written repair step (`dpkg --configure -a || true`). That is Ansible's core competency, currently reimplemented by hand.
+
+One correction worth making, because the opposite is often claimed: **Ansible does not repair dpkg for you.** That step survives the migration as an explicit task. What it gains is a condition — `dpkg --audit` is checked first, so a healthy node skips it — and an honest exit status instead of `|| true` discarding whatever went wrong. The improvement is real but it is smaller than "the tool handles it."
 
 This is not a rewrite for its own sake. It removes real code — `sysnative` path resolution for `ssh.exe`/`scp.exe`, heredocs piped over SSH, a hardcoded address in three files — and replaces imperative steps with declarative desired state.
 
@@ -64,10 +66,12 @@ ansible/
 ├── inventory.ini          node at 127.0.0.1:2222, user sysadmin, key-based
 ├── site.yml               top-level play
 └── roles/
-    ├── docker/            install docker.io + docker-compose-v2, enable the service
-    ├── tailscale/         install, run `tailscale up`, surface the auth URL
-    └── monitoring/        template .env, copy monitoring/, bring the stack up
+    ├── docker/            [done]    install docker.io + docker-compose-v2, enable the service
+    ├── tailscale/         [pending] install, run `tailscale up`, surface the auth URL
+    └── monitoring/        [pending] template .env, copy monitoring/, bring the stack up
 ```
+
+Progress is tracked in the list above rather than in prose, so it cannot quietly go stale. The PowerShell stages are not removed until all three roles exist — see requirement 6.
 
 `config/node.json` stays exactly as it is. It serves the PowerShell provisioning stages and describes hardware that exists before the OS does; Ansible gets its own inventory. Merging them would destroy the boundary this change exists to draw.
 

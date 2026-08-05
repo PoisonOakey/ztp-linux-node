@@ -1,0 +1,59 @@
+---
+# Replaces the apt half of scripts/06-setup-monitoring.ps1, which ran:
+#   sudo dpkg --configure -a || true && sudo apt-get update && \
+#   sudo apt-get install -y docker.io docker-compose-v2 && \
+#   sudo systemctl enable --now docker
+# as a single && chain over SSH, where a failure anywhere gave no indication
+# which step died.
+
+- name: Check for interrupted dpkg operations
+  ansible.builtin.command: dpkg --audit
+  register: docker_dpkg_audit
+  changed_when: false
+  check_mode: false
+  become: true
+
+# The PowerShell original ran `dpkg --configure -a || true` unconditionally on
+# every deployment. That repairs a genuinely broken node -- an interrupted
+# install leaves apt unusable, see TROUBLESHOOTING.md -- but `|| true` swallows
+# every failure it might have reported, and running it always makes it
+# impossible to tell a healthy node from a repaired one.
+#
+# Worth being precise about what changed here: Ansible does not repair dpkg for
+# you, so this step is still hand-written. What it gains is a condition and an
+# honest exit status.
+- name: Repair interrupted dpkg state
+  ansible.builtin.command: dpkg --configure -a
+  when: docker_dpkg_audit.stdout | trim | length > 0
+  become: true
+  changed_when: true
+
+- name: Install Docker engine and the Compose plugin
+  ansible.builtin.apt:
+    name: "{{ docker_packages }}"
+    state: present
+    update_cache: true
+    # Skip the index refresh if apt already updated within the hour. Keeps a
+    # re-run fast without letting the cache go stale enough to matter.
+    cache_valid_time: 3600
+  become: true
+
+- name: Ensure the Docker service is enabled and running
+  ansible.builtin.systemd_service:
+    name: "{{ docker_service_name }}"
+    enabled: true
+    state: started
+  become: true
+
+# `docker info` talks to the daemon, unlike `docker --version` which only reports
+# the client and would pass even with the service stopped. {% raw %} stops Jinja
+# from trying to evaluate Docker's Go template.
+- name: Confirm the engine responds
+  ansible.builtin.command: docker info --format '{% raw %}{{.ServerVersion}}{% endraw %}'
+  register: docker_server_version
+  changed_when: false
+  become: true
+
+- name: Report the installed engine version
+  ansible.builtin.debug:
+    msg: "Docker engine {{ docker_server_version.stdout }} is running"

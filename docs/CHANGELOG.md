@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Added
+- **`docker` role:** replaces the apt/systemctl half of `06-setup-monitoring.ps1`. Installs `docker.io` and `docker-compose-v2`, asserts the service is enabled and running, and confirms the daemon responds via `docker info` rather than `docker --version`, which reports only the client and would pass with the service stopped. Verified against the provisioned node: `ok=8 changed=0 skipped=1` on two consecutive runs.
+- **Conditional dpkg repair:** the PowerShell original ran `dpkg --configure -a || true` on every deployment, discarding whatever it might have reported. The role checks `dpkg --audit` first and skips the repair on a healthy node. Noted in `ROADMAP.md` that Ansible does *not* provide this for free -- the step is still hand-written, it just gained a condition and an honest exit status.
 - **Ansible control-node skeleton (`ansible/`):** `inventory.ini`, `ansible.cfg` and a `site.yml` smoke test, on the `ansible-migration` branch. No roles yet -- this is the wiring only, verified with two consecutive runs reporting `ok=3 changed=0`. Every setting in `ansible.cfg` is confirmed in effect via `ansible-config dump --type all --only-changed`; defaults are deliberately not restated.
 - **`docs/ANSIBLE-SETUP.md` -- running playbooks:** Ansible ignores an `ansible.cfg` found in a world-writable directory, and everything under `/mnt/d` reports mode `0777` to WSL. The resulting failure is misleading: the inventory is never parsed, so the play reports `skipping: no hosts matched` as though the inventory were at fault. Documents the explicit `ANSIBLE_CONFIG` invocation and the `wsl.conf` `automount` alternative.
 

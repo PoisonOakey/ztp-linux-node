@@ -1,18 +1,19 @@
 ---
 # Top-level play for the lab node.
 #
-# Roles are added here as they are written. Until then this is a smoke test:
-# it proves the control node can connect, authenticate, gather facts and
-# template output -- every dependency a real role has.
+# Roles are added here as they are written, replacing the corresponding
+# PowerShell stage. The pre_tasks are a connectivity smoke test: they prove the
+# control node can reach, authenticate to and gather facts from the target
+# before any role tries to change it.
 #
-# Neither task below can report "changed", so a second run must be identical to
-# the first. That is the property every role added here has to preserve.
+# The acceptance test for this playbook is that a second consecutive run reports
+# changed=0. Every role added here has to preserve that.
 
 - name: Configure the SRE node
   hosts: node
   gather_facts: true
 
-  tasks:
+  pre_tasks:
     - name: Confirm the control node can reach the target
       ansible.builtin.ping:
 
@@ -25,3 +26,7 @@
           as {{ ansible_user }} --
           {{ ansible_facts['processor_vcpus'] }} vCPU,
           {{ (ansible_facts['memtotal_mb'] / 1024) | round(1) }} GB RAM
+
+  roles:
+    # Replaces the apt/systemctl half of 06-setup-monitoring.ps1.
+    - docker
