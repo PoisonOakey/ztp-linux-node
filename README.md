@@ -46,7 +46,7 @@ Datasource and dashboard are provisioned from this repository, never clicked in.
 
 ![Alert delivered to Discord, firing then resolved](docs/images/discord.png)
 
-Firing, then resolved once the container came back — an alert that never closes is as useless as one that never opens. The runbook link rides on the notification itself.
+Alertmanager delivers the alert, then the resolved notice once the container returns. An alert that never closes is as useless as one that never opens. The runbook link is carried on the notification itself.
 
 ---
 
