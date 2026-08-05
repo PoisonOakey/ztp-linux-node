@@ -131,6 +131,20 @@ Prompts once for the node's `sudo` password. Re-running the playbook alone shoul
 cd ansible && ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
 ```
 
+### Access
+
+| | |
+|---|---|
+| **Grafana** | http://localhost:3000 — user `admin`, dashboard already provisioned |
+| **Prometheus** | http://localhost:9090 — `/targets` for scrape health, `/alerts` for rule state |
+| **SSH** | `ssh -p 2222 sysadmin@127.0.0.1` |
+
+The Grafana password is generated on the first run and reused after that. It lives on your machine only — gitignored, never in the repo:
+
+```bash
+cat ansible/.grafana_admin_password
+```
+
 ---
 
 ## 📈 Metrics
