@@ -34,23 +34,25 @@ flowchart TD
 
     subgraph Provisioning [Infrastructure Provisioning]
         direction LR
-        A[Stage 0: Host Prep]:::prov --> B[Stage 1: VM Provisioning]:::prov
-        B --> C[Stage 2: OS Installation]:::prov
+        A[01: Host Prep]:::prov --> B[02: VM Provisioning]:::prov
+        B --> C[03: OS Installation]:::prov
+        C --> D[04: Boot &amp; Await SSH]:::prov
     end
 
     subgraph Configuration [Configuration Management]
         direction LR
-        D[Stage 3: Connect SSH]:::conf --> E[Phase 2: Tailscale]:::conf
-        E --> F[Phase 3: Monitoring]:::conf
+        E[05: Tailscale]:::conf --> F[06: Monitoring]:::conf
     end
 
-    C --> D
+    D --> E
 ```
+
+The split is by concern, not by file numbering. Stages 01-04 provision a machine — driving `VBoxManage`, `diskpart` and `bcdedit` on a Windows host. Stages 05-06 configure a Linux node that is already running. See [ROADMAP.md](docs/ROADMAP.md) for why that boundary matters.
 
 | Layer | Technology | Role |
 |---|---|---|
-| **Hypervisor** | VirtualBox 7+ | Headless virtualization backend. |
-| **Orchestration** | PowerShell | Main execution engine enforcing idempotency and state checks. |
+| **Hypervisor** | VirtualBox 7+ | Virtualization backend. The node runs headless in normal operation; the OS install attaches a GUI so the installer can be observed. |
+| **Orchestration** | PowerShell | Drives the Windows-native tooling (`VBoxManage`, `diskpart`, `bcdedit`), re-runnable from any state, and fails on a deadline rather than hanging. |
 | **OS Automation** | Cloud-Init / Subiquity | Injected via a temporary virtual disk to pre-answer the Ubuntu installer's prompts. One exception -- Subiquity's destructive-disk confirmation -- is cleared by a keystroke; see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). |
 | **Secure Access** | Tailscale | Zero-trust mesh VPN for remote SSH/Web access without router configuration. |
 | **Observability** | Docker / Prometheus / Grafana | Containerized telemetry stack for hardware metrics. |
@@ -66,15 +68,15 @@ flowchart TD
 │
 ├── 📁 config/                   # Single source of truth: VM name, hardware sizing, ISO URL
 │
-├── 📁 scripts/                  # Modular PowerShell IaC stages (Provisioning, Networking, etc.)
-│   └── 📁 cloud-init/           # Headless Ubuntu autoinstall configurations
+├── 📁 scripts/                  # 01-04 provision the machine, 05-06 configure the node
+│   └── 📁 cloud-init/           # Unattended Ubuntu autoinstall configuration
 │
 ├── 📁 monitoring/               # Observability configuration
 │   └── 🐳 docker-compose.yml    # Prometheus & Grafana stack
 │
-├── 📁 docs/                     # Architecture & troubleshooting documentation
+├── 📁 docs/                     # Changelog, troubleshooting, roadmap, Ansible setup
 │
-└── 📁 logs/                     # Auto-generated execution transcripts
+└── 📁 logs/                     # Per-stage execution transcripts (gitignored)
 ```
 
 ---
@@ -85,7 +87,7 @@ flowchart TD
 |---|---|
 | **Single Source of Truth** | `config/node.json` centralizes VM name, RAM, CPU cores, disk size, and ISO URL -- every stage reads the same file instead of carrying its own hardcoded defaults |
 | **Zero-Touch Provisioning** | Cloud-init seeded from a generated FAT32 `CIDATA` disk: `grub_dpkg` pre-answers the bootloader prompt, and the host's SSH public key is rendered into a throwaway copy of `user-data` under the lab directory -- never back into the tracked template, so a real key never enters git |
-| **Network Virtualization** | NAT + `virtio` replaced bridged Wi-Fi, which stalled Docker pulls at ~50% after an hour; ~220 Mbps measured after |
+| **Network Virtualization** | NAT + `virtio` replaced bridged Wi-Fi, which stalled Docker pulls at ~50% after an hour; ~210-290 Mbps across four samples after the migration (the pre-migration figure was never benchmarked) |
 | **Resilient Orchestration** | Re-runnable from any state: stale VirtualBox media registrations and `known_hosts` pins are cleared before rebuild, the cloud-init disk is detached in a `finally` so a mid-run failure cannot strand a mounted VHD, `$LASTEXITCODE` is checked after every `VBoxManage` call that must succeed, and the install wait-loop fails on a deadline instead of hanging |
 | **Process Bypasses** | Dynamic `$env:WINDIR\sysnative` bypasses 32-bit Windows redirection for native 64-bit SSH execution |
 | **Zero-Trust Access** | Tailscale mesh VPN enables secure remote access (one-time browser device approval) without complex router port-forwarding |

@@ -3,8 +3,8 @@
 Installs Docker and deploys the Prometheus/Grafana monitoring stack on the VM.
 
 .DESCRIPTION
-This script uses SCP over localhost port-forwarding to securely copy the 
-local 'monitoring' directory to the VM, and then uses SSH to install Docker 
+This script uses SCP over localhost port-forwarding to securely copy the
+local 'monitoring' directory to the VM, and then uses SSH to install Docker
 and start the containers via Docker Compose.
 
 #>
@@ -16,40 +16,47 @@ $scriptName = [System.IO.Path]::GetFileNameWithoutExtension($MyInvocation.MyComm
 $timestamp = Get-Date -Format "yyyyMMdd-HHmmss"
 Start-Transcript -Path (Join-Path $logDir "$scriptName-$timestamp.log") -Append
 
-# 1. Retrieve the IP address
-$ipAddress = "127.0.0.1"
+try {
+    # 1. Retrieve the IP address
+    $ipAddress = "127.0.0.1"
 
-# 2. SCP the monitoring directory to the VM
-Write-Output "`n=================================================="
-Write-Output "Copying monitoring configuration to the VM (authenticating via SSH key)..."
-Write-Output "==================================================`n"
+    # 2. SCP the monitoring directory to the VM
+    Write-Output "`n=================================================="
+    Write-Output "Copying monitoring configuration to the VM (authenticating via SSH key)..."
+    Write-Output "==================================================`n"
 
-$monitoringDir = Join-Path $PSScriptRoot "..\monitoring"
+    $monitoringDir = Join-Path $PSScriptRoot "..\monitoring"
 
-# Ensure a real secrets file exists before it gets copied to the VM.
-# monitoring/.env is gitignored, so a fresh clone won't have one yet --
-# generate one from .env.example rather than silently deploying with
-# Grafana's built-in admin/admin default.
-$envFile = Join-Path $monitoringDir ".env"
-$envExampleFile = Join-Path $monitoringDir ".env.example"
-if (-not (Test-Path $envFile)) {
-    Write-Output "-> No monitoring/.env found. Generating one from .env.example..."
-    $generatedPassword = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
-    (Get-Content $envExampleFile) -replace 'GF_SECURITY_ADMIN_PASSWORD=.*', "GF_SECURITY_ADMIN_PASSWORD=$generatedPassword" | Set-Content $envFile
-    Write-Output "   [*] Generated Grafana admin password and saved it to monitoring/.env (gitignored)."
-}
+    # Ensure a real secrets file exists before it gets copied to the VM.
+    # monitoring/.env is gitignored, so a fresh clone won't have one yet --
+    # generate one from .env.example rather than silently deploying with
+    # Grafana's built-in admin/admin default.
+    $envFile = Join-Path $monitoringDir ".env"
+    $envExampleFile = Join-Path $monitoringDir ".env.example"
+    if (-not (Test-Path $envFile)) {
+        Write-Output "-> No monitoring/.env found. Generating one from .env.example..."
+        if (-not (Test-Path $envExampleFile)) {
+            throw "monitoring/.env.example is missing, so no Grafana admin password can be generated. Restore it before deploying -- shipping without it would fall back to Grafana's admin/admin default."
+        }
+        $generatedPassword = -join ((48..57) + (65..90) + (97..122) | Get-Random -Count 20 | ForEach-Object { [char]$_ })
+        (Get-Content $envExampleFile) -replace 'GF_SECURITY_ADMIN_PASSWORD=.*', "GF_SECURITY_ADMIN_PASSWORD=$generatedPassword" | Set-Content $envFile
+        Write-Output "   [*] Generated Grafana admin password and saved it to monitoring/.env (gitignored)."
+    }
 
-$scpPath = if (Test-Path "$env:WINDIR\sysnative\OpenSSH\scp.exe") { "$env:WINDIR\sysnative\OpenSSH\scp.exe" } else { "$env:WINDIR\System32\OpenSSH\scp.exe" }
-# Copy the monitoring directory (including .env) to the home directory of sysadmin on the VM
-& $scpPath -P 2222 -r -o StrictHostKeyChecking=no $monitoringDir sysadmin@$ipAddress`:~/
+    $scpPath = if (Test-Path "$env:WINDIR\sysnative\OpenSSH\scp.exe") { "$env:WINDIR\sysnative\OpenSSH\scp.exe" } else { "$env:WINDIR\System32\OpenSSH\scp.exe" }
+    # Copy the monitoring directory (including .env) to the home directory of sysadmin on the VM
+    & $scpPath -P 2222 -r -o StrictHostKeyChecking=no $monitoringDir sysadmin@$ipAddress`:~/
+    if ($LASTEXITCODE -ne 0) {
+        throw "Failed to copy the monitoring directory to the node (scp exit $LASTEXITCODE). Nothing was deployed."
+    }
 
-# 3. SSH in to install Docker and start the stack
-Write-Output "`n=================================================="
-Write-Output "Installing Docker and starting Prometheus/Grafana..."
-Write-Output "You may be prompted once for the 'sysadmin' account password -- that's sudo, not SSH."
-Write-Output "==================================================`n"
+    # 3. SSH in to install Docker and start the stack
+    Write-Output "`n=================================================="
+    Write-Output "Installing Docker and starting Prometheus/Grafana..."
+    Write-Output "You may be prompted once for the 'sysadmin' account password -- that's sudo, not SSH."
+    Write-Output "==================================================`n"
 
-$sshCommand = @"
+    $sshCommand = @"
 sudo dpkg --configure -a || true && \
 sudo apt-get update && \
 sudo apt-get install -y docker.io docker-compose-v2 && \
@@ -58,15 +65,25 @@ cd ~/monitoring && \
 sudo docker compose up -d
 "@
 
-$sshPath = if (Test-Path "$env:WINDIR\sysnative\OpenSSH\ssh.exe") { "$env:WINDIR\sysnative\OpenSSH\ssh.exe" } else { "$env:WINDIR\System32\OpenSSH\ssh.exe" }
-& $sshPath -p 2222 -t -o StrictHostKeyChecking=no sysadmin@$ipAddress $sshCommand
+    $sshPath = if (Test-Path "$env:WINDIR\sysnative\OpenSSH\ssh.exe") { "$env:WINDIR\sysnative\OpenSSH\ssh.exe" } else { "$env:WINDIR\System32\OpenSSH\ssh.exe" }
+    & $sshPath -p 2222 -t -o StrictHostKeyChecking=no sysadmin@$ipAddress $sshCommand
 
-Write-Output "`n=================================================="
-Write-Output "[OK] Monitoring Stack Deployed!"
-Write-Output "Grafana is running at: http://localhost:3000 (Login: admin / see monitoring/.env for password)"
-Write-Output "Prometheus is running at: http://localhost:9090"
-Write-Output "(Or access them securely via your new Tailscale IP!)"
-Write-Output "=================================================="
+    # The remote payload is a six-command chain; ssh returns the exit status of
+    # whichever step failed first (or 255 if the connection itself failed).
+    # $ErrorActionPreference does not apply to native executables, so without this
+    # check the success banner below printed unconditionally -- see
+    # TROUBLESHOOTING.md #9, which documented exactly that symptom.
+    if ($LASTEXITCODE -ne 0) {
+        throw "Docker install or 'docker compose up' failed on the node (ssh exit $LASTEXITCODE). The monitoring stack is NOT running. Re-run this stage after checking the output above for the failing step."
+    }
 
-Stop-Transcript
-
+    Write-Output "`n=================================================="
+    Write-Output "[OK] Monitoring Stack Deployed!"
+    Write-Output "Grafana is running at: http://localhost:3000 (Login: admin / see monitoring/.env for password)"
+    Write-Output "Prometheus is running at: http://localhost:9090"
+    Write-Output "(Or access them securely via your new Tailscale IP!)"
+    Write-Output "=================================================="
+}
+finally {
+    Stop-Transcript
+}

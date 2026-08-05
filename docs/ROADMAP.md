@@ -30,6 +30,30 @@ Stages 05 and 06 configure a Linux node that is already running: `apt-get instal
 
 This is not a rewrite for its own sake. It removes real code — `sysnative` path resolution for `ssh.exe`/`scp.exe`, heredocs piped over SSH, a hardcoded address in three files — and replaces imperative steps with declarative desired state.
 
+### The concrete problem it solves
+
+The architectural argument above is the tidy one. The specific defect is more useful.
+
+**Failure reporting.** `$ErrorActionPreference = 'Stop'` does not apply to native executables. A failing `ssh.exe` or `VBoxManage.exe` only sets `$LASTEXITCODE`, and PowerShell continues to the next line — so any stage that ran a command and then printed a banner reported success over work that never happened. Stage 06 was the worst case: its payload is a six-command `&&` chain, so a failure gave no indication which of the six died.
+
+This defect appeared independently in four scripts and has now been fixed by hand in all four — `02`, `03`, `05` and `06` each carry their own `$LASTEXITCODE` guard. **That repetition is the argument.** The fix is correct but it is a convention, and a convention is only as reliable as the next person remembering it. In Ansible, per-task failure reporting is not something you add — a play halts at the failing task and names it. The bug becomes unconstructable rather than merely absent.
+
+See `TROUBLESHOOTING.md` #9 and #14 for the two occurrences that were diagnosed from live failures rather than found by reading.
+
+**Idempotency is currently accidental.** `apt-get install -y` and `docker compose up -d` happen to be safe to re-run. `scp -r` is not — it re-copies the whole directory every time regardless of whether anything changed. Nothing in the current pipeline can report whether a second run changed anything. Ansible's `ok`/`changed` accounting makes that a property you can verify rather than one you assume.
+
+**Quoting layers.** The configuration steps are a bash script embedded in a PowerShell here-string, executed over SSH with a pseudo-TTY. Three levels of quoting, where an escaping error surfaces only at runtime on the far side of a network connection. Ansible modules take structured arguments and there is no shell to quote for.
+
+### What this does not solve
+
+Stated plainly, because overclaiming here would be worse than not doing it at all:
+
+- **Not scale.** There is one node. The fleet-management argument does not apply.
+- **Not speed.** It will be marginally slower than raw SSH.
+- **Not capability.** It adds nothing the current pipeline cannot already do.
+
+The value is entirely in failure semantics, provable idempotency, and the separation of concerns — not in the tool's reputation.
+
 ### Scope
 
 Stages **05 and 06 only**. Stage 04 stays PowerShell: it runs `VBoxManage startvm` and polls a TCP port, which is provisioning, not configuration. Splitting on the tool boundary rather than the file numbering is the point of the exercise.

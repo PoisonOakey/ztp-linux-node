@@ -5,7 +5,12 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.10.0] - 2026-08-05
+### Fixed
+- **Stages 05 and 06 reported success over failed runs:** both scripts ran their `ssh`/`scp` payload and then printed their success banner unconditionally. `$ErrorActionPreference = 'Stop'` does not apply to native executables, so a failed Tailscale install or a failed `docker compose up` still produced `[OK] Monitoring Stack Deployed!`. Stage 06's payload is a six-command chain, so a failure also gave no indication which step died. Both now check `$LASTEXITCODE` after every remote call and throw with the exit status. This is the same defect fixed in stages 02 and 03 in 1.9.0 -- the fourth hand-written instance, and a large part of the motivation for the Ansible migration in `ROADMAP.md`.
+- **Transcript leak in stages 05 and 06:** neither reached `Stop-Transcript` on a failure path, which the new `throw` statements would have made routine. Both bodies are now wrapped in `try/finally`, matching stage 03.
+- **Missing `.env.example` failed silently:** `06-setup-monitoring.ps1` read the template without checking it existed. On a repository missing it, `Get-Content` returned nothing and the generated `monitoring/.env` was empty, deploying Grafana on its `admin/admin` default -- the exact outcome the generation step exists to prevent. It now throws instead.
+
 ### Added
 - **`docs/ROADMAP.md`:** current state of each layer, the planned move of configuration management to Ansible with its scope and requirements, the deferred stage 03 ISO patch, and explicit non-goals with reasoning.
 - **`docs/ANSIBLE-SETUP.md`:** one-time control-node setup on Windows. Documents why WSL **1** is required rather than WSL 2 -- WSL 2 needs `VirtualMachinePlatform`, which `01-host-prep.ps1` disables so VirtualBox gets raw VT-x, and the two cannot coexist. Also covers the DNS failure caused by a VPN client managing host DNS, forcing APT over IPv4, and the private-key permission workaround for files under `/mnt/c`. Verified end to end against the provisioned node.

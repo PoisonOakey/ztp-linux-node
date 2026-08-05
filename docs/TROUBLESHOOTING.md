@@ -160,7 +160,13 @@ The deployment scripts implement a dynamic path fallback. They first check for t
 When PowerShell automates SSH commands that include `sudo` (e.g., `ssh user@ip "sudo apt-get install docker"`), the Linux server cannot interactively prompt you for the `sysadmin` password because the SSH session was not allocated a terminal. `sudo` simply crashes silently in the background, terminating the installation.
 
 **Resolution:**
-The `-t` flag (pseudo-TTY) was added to all SSH commands in scripts `05` and `06`. This forces OpenSSH to allocate a true terminal over the network, allowing the Linux `sudo` binary to securely pass its interactive password prompt back to your Windows PowerShell window.
+Two separate fixes were needed, and for a long time only the first was in place.
+
+The `-t` flag (pseudo-TTY) was added to all SSH commands in scripts `05` and `06`. This forces OpenSSH to allocate a true terminal over the network, allowing the Linux `sudo` binary to securely pass its interactive password prompt back to your Windows PowerShell window. That addressed the *cause* of the failure.
+
+It did not address why the failure was **silent**. `$ErrorActionPreference = 'Stop'` does not apply to native executables — a failing `ssh.exe` only sets `$LASTEXITCODE`, and PowerShell continues to the next line. Both scripts ran the remote command and then printed their success banner unconditionally, so any remote failure was reported as success. Stage 06's payload is a six-command chain, which made it worse: a failure gave no indication which step died.
+
+Both scripts now check `$LASTEXITCODE` after every `ssh`/`scp` call and throw with the exit status if it is non-zero, so the banner can only print on a run that actually succeeded. This is the same defect class as the stale-medium failure in item 14, and it has now been fixed by hand in four scripts — which is a large part of the motivation for moving configuration management to Ansible, where per-task failure reporting is structural rather than something each script has to remember. See [ROADMAP.md](ROADMAP.md).
 
 ---
 
