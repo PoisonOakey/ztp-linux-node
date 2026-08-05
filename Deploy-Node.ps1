@@ -3,14 +3,28 @@
 Master execution script that runs all stages sequentially to fully bootstrap the node.
 
 .DESCRIPTION
-This script acts as the orchestrator for the entire SysOps pipeline.
-It handles running scripts 01 through 06, and critically, it pauses and waits 
-for the unattended OS installation (Stage 03) to complete before moving on to 
-networking and observability.
+This script acts as the orchestrator for the entire pipeline.
+
+It runs the PowerShell provisioning stages 01 through 04, waits for the
+unattended OS installation (stage 03) to finish, and then hands the running node
+to Ansible for configuration management. Provisioning and configuration are
+deliberately separate concerns -- see docs/ROADMAP.md.
+
+Ansible runs from WSL, since there is no native Windows control node. If WSL or
+Ansible is unavailable the script fails with an actionable message rather than
+skipping the configuration stages silently. See docs/ANSIBLE-SETUP.md.
+
+.PARAMETER InstallTimeoutMinutes
+How long to wait for the unattended OS install to power the VM off before giving
+up. Default: 20.
+
+.PARAMETER WslDistro
+The WSL distribution holding the Ansible control node. Default: "Ubuntu".
 #>
 
 param (
-    [int]$InstallTimeoutMinutes = 20
+    [int]$InstallTimeoutMinutes = 20,
+    [string]$WslDistro = "Ubuntu"
 )
 
 $ErrorActionPreference = 'Stop'
@@ -100,13 +114,43 @@ Write-Output "`n>>> Executing Stage 04: Connect Node (Booting VM)..."
 Write-Output "Waiting 15 seconds for SSH daemon to initialize..."
 Start-Sleep -Seconds 15
 
-# 5. Tailscale Setup
-Write-Output "`n>>> Executing Stage 05: Tailscale Setup..."
-& .\scripts\05-setup-tailscale.ps1
+# 5. Configuration management (Ansible)
+# Provisioning stops here. Everything past this point configures a Linux node
+# that is already running, which is Ansible's job rather than PowerShell's --
+# see docs/ROADMAP.md. Ansible has no native Windows control node, so it runs
+# from WSL; docs/ANSIBLE-SETUP.md covers the one-time setup.
+Write-Output "`n>>> Executing configuration management with Ansible..."
 
-# 6. Monitoring Setup
-Write-Output "`n>>> Executing Stage 06: Monitoring Setup..."
-& .\scripts\06-setup-monitoring.ps1
+$wslExe = if (Test-Path "$env:WINDIR\sysnative\wsl.exe") { "$env:WINDIR\sysnative\wsl.exe" } else { "$env:WINDIR\System32\wsl.exe" }
+if (-not (Test-Path $wslExe)) {
+    throw "WSL is not installed on this host, so the configuration stages cannot run. Install it and set up an Ansible control node -- see docs/ANSIBLE-SETUP.md. The VM is provisioned and reachable; only configuration was skipped."
+}
+
+# The distro is named explicitly rather than relying on the WSL default. Docker
+# Desktop registers its own WSL 2 distro, and if that is the default a bare `wsl`
+# invocation starts it instead and fails with HCS_E_HYPERV_NOT_INSTALLED.
+& $wslExe -d $WslDistro -- bash -c "command -v ansible-playbook" | Out-Null
+if ($LASTEXITCODE -ne 0) {
+    throw "Ansible is not installed in the '$WslDistro' WSL distro, so the configuration stages cannot run. See docs/ANSIBLE-SETUP.md. The VM is provisioned and reachable; only configuration was skipped."
+}
+
+# Translate the Windows path with wslpath rather than string surgery on the
+# drive letter, so this keeps working if the repository moves.
+$ansibleDirWin = (Join-Path $PSScriptRoot "ansible") -replace '\\', '/'
+$ansibleDir = (& $wslExe -d $WslDistro -- wslpath -a "$ansibleDirWin").Trim()
+if ($LASTEXITCODE -ne 0 -or -not $ansibleDir) {
+    throw "Could not resolve '$ansibleDirWin' to a WSL path (wslpath exit $LASTEXITCODE)."
+}
+
+# ANSIBLE_CONFIG is passed explicitly because Ansible ignores an ansible.cfg
+# found in a world-writable directory, and Windows drives mounted into WSL report
+# mode 0777. Without it the inventory is never parsed and the play reports
+# "no hosts matched" as though the inventory were at fault.
+Write-Output "-> Running ansible-playbook site.yml (you will be prompted once for the sudo password)"
+& $wslExe -d $WslDistro -- bash -c "cd '$ansibleDir' && ANSIBLE_CONFIG='$ansibleDir/ansible.cfg' ansible-playbook site.yml -K"
+if ($LASTEXITCODE -ne 0) {
+    throw "The Ansible run failed (exit $LASTEXITCODE). The node is provisioned but not fully configured. Re-run this script, or run the playbook directly -- see docs/ANSIBLE-SETUP.md."
+}
 
 Write-Output "`n=================================================="
 Write-Output "[OK] PIPELINE COMPLETE"

@@ -6,6 +6,14 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Changed
+- **`Deploy-Node.ps1` hands off to Ansible after stage 04.** Provisioning stops once the node is booted and reachable; configuration is a separate concern and now runs as a playbook. The distro is named explicitly rather than relying on the WSL default, because Docker Desktop registers its own WSL 2 distro and a bare `wsl` invocation would start that instead and fail with `HCS_E_HYPERV_NOT_INSTALLED`. Paths are translated with `wslpath` rather than string surgery on the drive letter, so the repository can move. If WSL or Ansible is unavailable the script fails with an actionable message naming `docs/ANSIBLE-SETUP.md` -- it never skips configuration silently.
+- **Ansible failures are checked like every other native call.** Verified that both failure modes cross the WSL boundary intact: a missing playbook returns exit 1 and a task-level failure returns exit 2, each tripping the guard. A successful run returns 0.
+
+### Removed
+- **`scripts/05-setup-tailscale.ps1` and `scripts/06-setup-monitoring.ps1`**, replaced by the `tailscale` and `monitoring` roles. Deleted in the same change that wires the playbook in, so there is never a state where both implementations exist and nothing tells a reader which one runs.
+- Documentation referring to those scripts in the present tense was updated: `TROUBLESHOOTING.md` #8 (the `sysnative` fallback now applies only to `ssh-keygen.exe` in the provisioning stages, since Ansible runs from WSL and uses the Linux SSH client), #9, #13 and #15, plus a comment in `02-provision-node.ps1`.
+
 ### Added
 - **`monitoring` role:** replaces the `scp` and `docker compose up` half of `06-setup-monitoring.ps1`. Files are listed explicitly rather than copied wholesale, so the control node's `.env.example` no longer ships to the target, and `community.docker.docker_compose_v2` reports whether the stack actually changed instead of always claiming it did. Verified: `changed=4` on first run, `changed=0` on the second, with Grafana and Prometheus both answering `200` and both scrape targets `up` afterwards.
 - **Grafana password survives the port (G2):** the password is generated once via the `password` lookup and persisted to `ansible/.grafana_admin_password` on the control node, which is gitignored. Every later run reads the same value. A naive port would regenerate it each run, rotating the credential unexpectedly and breaking idempotency, since the rendered `.env` would differ every time and restart the container. The rendered file is `0600` and both the lookup and the template task are marked `no_log`.

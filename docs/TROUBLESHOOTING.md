@@ -147,7 +147,9 @@ The pre-migration figure was never benchmarked, so only the qualitative symptom 
 If you run the scripts from a 32-bit PowerShell process (such as a 32-bit VS Code terminal) on a 64-bit Windows installation, Windows aggressively engages the "File System Redirector". Any attempt to execute a binary in `C:\Windows\System32` is silently redirected to `C:\Windows\SysWOW64`. Because OpenSSH does not ship a 32-bit binary in `SysWOW64`, PowerShell reports that the file does not exist.
 
 **Resolution:**
-The deployment scripts implement a dynamic path fallback. They first check for the existence of `$env:WINDIR\sysnative\OpenSSH\ssh.exe` (a virtual alias that forces 32-bit applications to access the true 64-bit `System32` folder) before falling back to the standard path.
+The provisioning scripts implement a dynamic path fallback. They first check for the existence of `$env:WINDIR\sysnative\OpenSSH\ssh-keygen.exe` (a virtual alias that forces 32-bit applications to access the true 64-bit `System32` folder) before falling back to the standard path.
+
+> This originally applied to `ssh.exe` and `scp.exe` in the configuration stages as well. Those stages are now Ansible roles running from WSL, which uses the Linux OpenSSH client and is unaffected. The fallback remains in `02-provision-node.ps1` and `03-autoinstall-node.ps1`, which still call `ssh-keygen.exe` on the Windows side.
 
 ---
 
@@ -166,7 +168,9 @@ The `-t` flag (pseudo-TTY) was added to all SSH commands in scripts `05` and `06
 
 It did not address why the failure was **silent**. `$ErrorActionPreference = 'Stop'` does not apply to native executables — a failing `ssh.exe` only sets `$LASTEXITCODE`, and PowerShell continues to the next line. Both scripts ran the remote command and then printed their success banner unconditionally, so any remote failure was reported as success. Stage 06's payload is a six-command chain, which made it worse: a failure gave no indication which step died.
 
-Both scripts now check `$LASTEXITCODE` after every `ssh`/`scp` call and throw with the exit status if it is non-zero, so the banner can only print on a run that actually succeeded. This is the same defect class as the stale-medium failure in item 14, and it has now been fixed by hand in four scripts — which is a large part of the motivation for moving configuration management to Ansible, where per-task failure reporting is structural rather than something each script has to remember. See [ROADMAP.md](ROADMAP.md).
+Both scripts were fixed to check `$LASTEXITCODE` after every `ssh`/`scp` call and throw with the exit status, so the banner could only print on a run that actually succeeded. This is the same defect class as the stale-medium failure in item 14, and it was ultimately fixed by hand in four separate scripts.
+
+That repetition is why configuration management moved to Ansible. `05-setup-tailscale.ps1` and `06-setup-monitoring.ps1` no longer exist — the `tailscale` and `monitoring` roles replaced them, and in Ansible a play halts at the failing task and names it. The reporting is structural rather than a convention each script has to remember. `Deploy-Node.ps1` applies the same discipline to the Ansible invocation itself: it checks the exit status and fails loudly rather than printing a completion banner over a failed run. See [ROADMAP.md](ROADMAP.md).
 
 ---
 
@@ -230,7 +234,7 @@ CPU usage on the Grafana dashboard should drop back down within one scrape inter
 - The VM itself shows up fine in the Tailscale admin console with a valid `100.x.x.x` address, and `tailscale up` completed successfully inside the VM.
 
 **Root Cause:**
-`05-setup-tailscale.ps1` only installs and authenticates Tailscale **inside the guest VM**, over SSH. It never touches the Windows host. A Tailscale IP (`100.64.0.0/10`) is only reachable by a device that is itself running the Tailscale client and signed into the same tailnet -- there's no route to it otherwise, the same way there's no route to another company's internal VPN just because you know an IP on it. If the connecting device (host laptop, phone, etc.) was never enrolled, `100.x.x.x` addresses simply don't resolve for it, regardless of any Docker/firewall configuration on the VM side.
+The `tailscale` Ansible role only installs and authenticates Tailscale **inside the guest VM** (as did `05-setup-tailscale.ps1` before it). It never touches the Windows host. A Tailscale IP (`100.64.0.0/10`) is only reachable by a device that is itself running the Tailscale client and signed into the same tailnet -- there's no route to it otherwise, the same way there's no route to another company's internal VPN just because you know an IP on it. If the connecting device (host laptop, phone, etc.) was never enrolled, `100.x.x.x` addresses simply don't resolve for it, regardless of any Docker/firewall configuration on the VM side.
 
 **Resolution:**
 This is intentionally **not** automated by the pipeline, and that's a deliberate design choice, not a gap: which personal devices join your tailnet is a decision for the operator, not something a VM-provisioning script should silently do to your own laptop as a side effect. To actually reach the VM remotely:
@@ -272,7 +276,7 @@ Explicit `$LASTEXITCODE` checks were added after the `storageattach` and `startv
 ## 15. "REMOTE HOST IDENTIFICATION HAS CHANGED!" After Rebuilding The VM
 
 **Symptoms:**
-- After wiping and re-provisioning the node, stages 05/06 (or a manual `ssh -p 2222 sysadmin@127.0.0.1`) print:
+- After wiping and re-provisioning the node, the Ansible run (or a manual `ssh -p 2222 sysadmin@127.0.0.1`) prints:
   ```text
   @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
   @    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @

@@ -12,13 +12,17 @@ What is built, what is planned, and what is deliberately not being built. Kept h
 | VM provisioning | PowerShell + `VBoxManage` | Done — NAT with `virtio`, port-forwards, storage, media mounted |
 | OS installation | cloud-init / Subiquity | Done, with one known limitation (see below) |
 | Connectivity | PowerShell | Done — boots the node, polls the forwarded SSH port |
-| Configuration management | PowerShell over SSH | **Working, but hand-rolled — the target of the next phase** |
+| Configuration management | Ansible (from WSL) | Done — three roles, `changed=0` on a second consecutive run |
 | Observability | Docker / Prometheus / Grafana / node_exporter | Done — verified scraping the VM, not the container |
 | CI | GitHub Actions | Static validation only: `PSScriptAnalyzer`, config schema check, `docker compose config` |
 
 ---
 
-## Planned: move configuration management to Ansible
+## Done: configuration management moved to Ansible
+
+> **Status.** All three roles exist, `Deploy-Node.ps1` invokes the playbook, and the replaced PowerShell stages are deleted. Two items from the requirements below remain: the README still describes the old layering (requirement not listed here — tracked in the section after this one), and CI does not yet lint the playbook (requirement 7).
+>
+> The rationale below is kept in the present tense because it is the reasoning a reader should find, not a historical note.
 
 ### Rationale
 
