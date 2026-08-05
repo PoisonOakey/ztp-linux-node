@@ -4,7 +4,7 @@ Automates the provisioning of a VirtualBox Ubuntu Server node.
 
 .DESCRIPTION
 This script provisions a VirtualBox VM with proper resources,
-automatically detects and configures the bridged network adapter,
+configures a NAT network adapter with port forwarding (2222 -> 22),
 creates a virtual disk, and attaches the Ubuntu ISO.
 
 .PARAMETER VmName
@@ -96,6 +96,19 @@ if (-not (Test-Path $IsoPath)) {
 Write-Output "`n-> Creating Virtual Machine architecture..."
 & $VBoxManage createvm --name $VmName --ostype "Ubuntu_64" --register
 
+# A rebuilt VM reinstalls the OS, which generates a fresh SSH host key -- but the
+# previous node's key is still pinned in ~/.ssh/known_hosts against the same
+# forwarded address, so stages 05 and 06 print a REMOTE HOST IDENTIFICATION HAS
+# CHANGED warning mid-pipeline. `-o StrictHostKeyChecking=no` does not cover this:
+# it only suppresses prompts for *unknown* hosts, never a *changed* one. Drop the
+# stale pin now that the old node is gone. ssh-keygen -R is a no-op when there is
+# no matching entry, so this is safe on a first run.
+Write-Output "-> Clearing any stale SSH host key for [127.0.0.1]:2222..."
+$sshKeygenPath = if (Test-Path "$env:WINDIR\sysnative\OpenSSH\ssh-keygen.exe") { "$env:WINDIR\sysnative\OpenSSH\ssh-keygen.exe" } else { "$env:WINDIR\System32\OpenSSH\ssh-keygen.exe" }
+$ErrorActionPreference = 'Continue'
+& $sshKeygenPath -R "[127.0.0.1]:2222" 2>&1 | Out-Null
+$ErrorActionPreference = 'Stop'
+
 # 2. Allocate Hardware Resources
 Write-Output "-> Allocating $CpuCores vCPUs and ${RamMb}MB RAM..."
 & $VBoxManage modifyvm $VmName --memory $RamMb --cpus $CpuCores
@@ -110,7 +123,14 @@ Write-Output "-> Configuring NAT with Virtio performance driver and Port Forward
 # 4. Provision Storage and Mount Media
 if (Test-Path $DiskPath) {
     Write-Output "-> Removing existing stale VDI disk..."
-    & $VBoxManage closemedium disk $DiskPath --delete 2>$null
+    # closemedium fails when the VDI exists on disk but is not in VirtualBox's
+    # media registry -- the normal state after an interrupted run. Under
+    # $ErrorActionPreference = 'Stop', PowerShell 5.1 turns that native stderr
+    # into a terminating error, so the failure is tolerated explicitly here
+    # rather than redirected away with 2>$null, which does not suppress it.
+    $ErrorActionPreference = 'Continue'
+    & $VBoxManage closemedium disk $DiskPath --delete 2>&1 | Out-Null
+    $ErrorActionPreference = 'Stop'
     if (Test-Path $DiskPath) { Remove-Item -Path $DiskPath -Force }
 }
 
@@ -134,3 +154,4 @@ Write-Output "    .\scripts\03-autoinstall-node.ps1"
 Write-Output "=================================================="
 
 Stop-Transcript
+

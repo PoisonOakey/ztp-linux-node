@@ -1,10 +1,12 @@
 <#
 .SYNOPSIS
-Retrieves the IP address of the provisioned node and provides the SSH connection command.
+Boots the provisioned node if needed and prints the SSH connection command.
 
 .DESCRIPTION
 This script checks if the VM is running. If not, it boots it headlessly.
-It then queries the VirtualBox Guest Properties to discover the IP address assigned by your local DHCP server and outputs the exact command needed to SSH into the box.
+It then polls the VirtualBox NAT port-forward on 127.0.0.1:2222 until SSH
+answers, and prints the connection command. There is no IP discovery -- the
+node is always reached over localhost port-forwarding, not a DHCP address.
 
 .PARAMETER VmName
 Name of the Virtual Machine. Defaults to the value in config/node.json.
@@ -61,13 +63,6 @@ while (-not $sshReady -and $retryCount -lt $maxRetries) {
 }
 
 if ($sshReady) {
-    # Provide the unified connection string
-    $ipAddress = "127.0.0.1"
-    
-    # We write 127.0.0.1 to the cache so the other scripts can read it if needed,
-    # though they will just hardcode 127.0.0.1 and port 2222.
-    $ipCacheFile = Join-Path $env:TEMP ".sre-node-ip.txt"
-    Set-Content -Path $ipCacheFile -Value $ipAddress
     
     Write-Output "`n=================================================="
     Write-Output "[OK] VM is actively running and forwarded to localhost!"
@@ -81,3 +76,4 @@ if ($sshReady) {
 }
 
 Stop-Transcript
+

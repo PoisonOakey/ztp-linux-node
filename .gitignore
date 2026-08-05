@@ -10,3 +10,6 @@ cidata.vhd
 
 # Secrets (see monitoring/.env.example for the template)
 monitoring/.env
+
+# Internal working notes -- not project documentation
+docs/WORK-ORDER.md

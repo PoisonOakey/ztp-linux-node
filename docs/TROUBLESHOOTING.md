@@ -52,13 +52,16 @@ For optimal automation compatibility, this project explicitly forces **Standard 
 When installing via legacy BIOS, the `grub-pc` package is updated or installed. By default, `debconf` notices it is a new installation and defensively prompts the user to confirm the Master Boot Record (MBR) disk location to avoid overwriting existing bootloaders.
 
 **Resolution:**
-We bypass this interactive prompt by injecting `debconf_selections` directly into the `user-data` file. This pre-answers the prompt for the installer:
+We pre-answer the prompt from `user-data` using cloud-init's `grub_dpkg` module, which seeds the `grub-pc/install_devices` debconf question before the package is configured:
 ```yaml
-user-data:
-  debconf_selections: |
-    grub-pc grub-pc/install_devices multiselect /dev/sda
+  grub_dpkg:
+    enabled: true
+    grub_pc_install_devices:
+      - /dev/sda
 ```
 This forces `grub-pc` to silently install to `/dev/sda` without hanging the installation.
+
+> **Historical note:** earlier revisions of this project wrote the answer as a raw `debconf_selections` block. It was replaced by `grub_dpkg`, which is the supported cloud-init module for this exact question and does not depend on getting the debconf line format right by hand. Some older commit messages and CHANGELOG entries still refer to `debconf_selections`; the seeding in `user-data` is what is actually in force.
 
 ---
 
@@ -70,7 +73,7 @@ This forces `grub-pc` to silently install to `/dev/sda` without hanging the inst
 - Jumping into the hidden installer terminal (TTY2 via `Alt+F2`) and running `ps auxf` reveals that the `apt-get` process is running `/usr/lib/apt/methods/http`, but has accumulated zero recent CPU time and is completely hung.
 
 **Root Cause:**
-By default, Ubuntu's installer attempts to connect to `archive.ubuntu.com` to download the latest kernel updates during installation. If the VirtualBox bridged network adapter experiences IPv6 blackholing, or the mirror is unresponsive, `apt-get` can hang indefinitely without timing out, permanently freezing the headless installation.
+By default, Ubuntu's installer attempts to connect to `archive.ubuntu.com` to download the latest kernel updates during installation. If IPv6 traffic is blackholed on the path, or the mirror is unresponsive, `apt-get` can hang indefinitely without timing out, permanently freezing the unattended installation. This was first hit on the bridged network adapter used before 1.3.0, but the failure is a property of the mirror fetch itself, not of the adapter -- it is equally reachable under NAT, which is why the mitigation stayed in place after the migration.
 
 **Resolution:**
 To enforce a deterministic, offline build that completely ignores internet mirrors during the installation phase, we configure `cloud-init` to disable updates. 
@@ -98,17 +101,20 @@ Generate a mathematically valid SHA-512 crypt hash for your desired password and
 
 ---
 
-## 6. Blind Hypervisor / Missing IP Address
+## 6. Blind Hypervisor -- Why There Is No IP Discovery At All
 
-**Symptoms:**
-- The `04-connect-node.ps1` script fails to retrieve the VM's IP address, eventually timing out after 20 retries.
-- The script states: `Could not retrieve IP address. Ensure the VM has finished the OS installation and has rebooted.`
+**Symptoms (historical):**
+- `04-connect-node.ps1` failed to retrieve the VM's IP address, timing out after 20 retries with `Could not retrieve IP address. Ensure the VM has finished the OS installation and has rebooted.`
 
 **Root Cause:**
-The connection script uses `VBoxManage guestproperty get` to query the IP address from the guest operating system. However, this feature relies entirely on the `virtualbox-guest-utils` daemon running inside the VM. Because we configured a strictly offline installation (disabling APT network updates to avoid the IPv6 hang), the VirtualBox guest additions package was never downloaded or installed.
+The connection script originally used `VBoxManage guestproperty get` to ask the guest for its DHCP address. That feature depends entirely on the `virtualbox-guest-utils` daemon running inside the VM — and because this project configures a strictly offline installation (APT network updates disabled to avoid the IPv6 hang in item 4), the guest additions package is never downloaded or installed. The host had no way to learn the address.
 
 **Resolution:**
-The VM is fully operational and connected to the bridged network; it just cannot report its IP address back to the Windows host. To retrieve the IP address, simply log into the VM's console directly through the VirtualBox Manager GUI and read the IP address from the Ubuntu Welcome Message (MOTD) or run `ip a`. Alternatively, you can explicitly instruct `cloud-init` to install `virtualbox-guest-utils` in the `packages:` block (if network updates are permitted).
+IP discovery was removed rather than repaired. The architecture moved to NAT with fixed port-forwards (item 7), so the node's address is not a runtime unknown to be discovered — it is always `127.0.0.1`, reached on `2222` (SSH), `3000` (Grafana), and `9090` (Prometheus). `04-connect-node.ps1` now polls TCP `127.0.0.1:2222` until SSH answers, which tests the thing that actually matters (can we reach it?) instead of inferring it from an address lookup that needed an agent we deliberately do not install.
+
+If you do want the guest's own address for some other reason, log into the console via the VirtualBox GUI and run `ip a`. Under NAT it will be a private `10.0.2.x` address that is not routable from the host — which is precisely why the port-forwards exist.
+
+> **Note:** the error message quoted above no longer exists in any script. It is preserved here because searching for it is how you would land on this entry.
 
 ---
 
@@ -186,7 +192,7 @@ The script also fails loudly (`exit 1`) before writing `user-data` at all if it 
 The BCD idempotency check called `bcdedit /enum "{current}"` to see whether `hypervisorlaunchtype` was already off before touching it. PowerShell's native-argument marshalling mangles the curly-brace `"{current}"` token when passed through the call operator (`&`), so `bcdedit` returns `The specified entry type is invalid` instead of real boot configuration data. `Select-String` then never finds the `hypervisorlaunchtype` line, the check always concludes "not yet disabled," and the script re-triggers the restart requirement on every single run regardless of actual state.
 
 **Resolution:**
-The check was changed to call plain `bcdedit /enum` (no entry ID), which enumerates the active boot entries by default and parses cleanly through PowerShell -- avoiding the malformed argument entirely. This matches how the corresponding `bcdedit /set hypervisorlaunchtype off` call already omits the ID for the same reason. Confirmed fixed via `logs/01-host-prep-*.log`: after the fix, a re-run correctly reports `[OK] BCD hypervisor launch type is already disabled.` and proceeds straight to Stage 2 with no restart demanded.
+The check was changed to call plain `bcdedit /enum` (no entry ID), which enumerates the active boot entries by default and parses cleanly through PowerShell -- avoiding the malformed argument entirely. This matches how the corresponding `bcdedit /set hypervisorlaunchtype off` call already omits the ID for the same reason. To confirm the fix on your own machine, run `01-host-prep.ps1` twice: the second run should report `[OK] BCD hypervisor launch type is already disabled.` and proceed straight to Stage 2 with no restart demanded.
 
 ---
 
@@ -227,6 +233,59 @@ This is intentionally **not** automated by the pipeline, and that's a deliberate
 3. Then `http://<tailscale-ip>:3000` becomes reachable from that device.
 
 Note that if you're physically at the host machine, you don't need any of this -- `http://localhost:3000` already works via the existing VirtualBox NAT port-forward. Tailscale only matters for devices that *aren't* the host.
+
+---
+
+## 14. Stage 03 Fails With "UUID Does Not Match The Value Stored In The Media Registry"
+
+**Symptoms:**
+- The first run of the pipeline works. Every run after it dies in `03-autoinstall-node.ps1`:
+  ```text
+  VBoxManage.exe: error: UUID {5d20ce9c-...} of the medium 'C:\Users\...\cidata.vhd'
+  does not match the value {f62e50f9-...} stored in the media registry
+  ('C:\Users\...\.VirtualBox\VirtualBox.xml')
+  ```
+- Worse, on older revisions the script carried on regardless: it slept 90 seconds, typed into a VM that was never started, and printed `Automated installation has been triggered!` on a run that did nothing at all.
+
+**Root Cause:**
+Two independent defects that compounded.
+
+First, `03-autoinstall-node.ps1` rebuilds `cidata.vhd` from scratch on every run, so the new file gets a new UUID. VirtualBox, however, still holds the *previous* UUID — sometimes in the VM's own machine XML as `SATA Controller-ImageUUID-1-0`, sometimes in the global media registry in `VirtualBox.xml`, depending on how the earlier run ended. Attaching a file whose UUID disagrees with the stored one is rejected outright.
+
+Second, `$ErrorActionPreference = 'Stop'` **does not apply to native executables**. A failing `VBoxManage` call only sets `$LASTEXITCODE`; PowerShell carries on to the next line. So the failed `startvm` never stopped the script.
+
+**Resolution:**
+Stage 03 now clears the stale registration before rebuilding the disk — detaching the medium if the slot is occupied, and closing the registry entry if one is registered for that path. The entry is looked up by location and closed *by UUID*, because closing by path makes VirtualBox reopen the file and re-run the very comparison that is already failing.
+
+Both places matter: a run interrupted at different points leaves the stale reference in different places, so the machine-XML detach and the media-registry `closemedium` are each load-bearing on their own.
+
+Explicit `$LASTEXITCODE` checks were added after the `storageattach` and `startvm` calls so a failure is now loud and immediate instead of producing a success banner.
+
+---
+
+## 15. "REMOTE HOST IDENTIFICATION HAS CHANGED!" After Rebuilding The VM
+
+**Symptoms:**
+- After wiping and re-provisioning the node, stages 05/06 (or a manual `ssh -p 2222 sysadmin@127.0.0.1`) print:
+  ```text
+  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  @    WARNING: REMOTE HOST IDENTIFICATION HAS CHANGED!     @
+  @@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@@
+  Offending ED25519 key in C:\Users\<you>/.ssh/known_hosts:4
+  ```
+- The pipeline still completes, which makes it easy to ignore.
+
+**Root Cause:**
+Reinstalling the OS generates a brand-new SSH host key, but the old node's key is still pinned in `~/.ssh/known_hosts` against the same address — every VM in this project answers on `[127.0.0.1]:2222`, so each rebuild collides with its predecessor's entry.
+
+The scripts pass `-o StrictHostKeyChecking=no`, which is often assumed to cover this. It does not. That option only suppresses the confirmation prompt for hosts that are **unknown**; a host whose key has **changed** is treated as a possible man-in-the-middle regardless. Key-based auth still succeeds (which is why the pipeline finishes), but password and keyboard-interactive auth are disabled for that connection and the warning is printed every time.
+
+**Resolution:**
+`02-provision-node.ps1` now drops the stale pin immediately after creating the VM, before any OS is installed on it:
+```powershell
+& $sshKeygenPath -R "[127.0.0.1]:2222"
+```
+`ssh-keygen -R` is a no-op when there is no matching entry, so this is safe on a first run. Note the bracket syntax — a non-default port is part of the `known_hosts` key, and `ssh-keygen -R 127.0.0.1` will not match an entry stored as `[127.0.0.1]:2222`.
 
 ---
 

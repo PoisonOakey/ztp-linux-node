@@ -3,12 +3,10 @@
 Installs Docker and deploys the Prometheus/Grafana monitoring stack on the VM.
 
 .DESCRIPTION
-This script queries the VM for its IP address, uses SCP to securely copy the 
+This script uses SCP over localhost port-forwarding to securely copy the 
 local 'monitoring' directory to the VM, and then uses SSH to install Docker 
 and start the containers via Docker Compose.
 
-.PARAMETER VmName
-Name of the Virtual Machine. Default: "SRE-Node-01"
 #>
 param ()
 
@@ -71,3 +69,4 @@ Write-Output "(Or access them securely via your new Tailscale IP!)"
 Write-Output "=================================================="
 
 Stop-Transcript
+

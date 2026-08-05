@@ -3,13 +3,11 @@
 Installs and configures Tailscale on the headless VM node.
 
 .DESCRIPTION
-This script automatically queries the VM for its local IP, then uses SSH (authenticating
+This script automatically connects to the VM via localhost port-forwarding, then uses SSH (authenticating
 via your SSH key) to install Tailscale. You may be prompted once for the 'sysadmin'
 account password -- that's sudo, not SSH.
 Once installed, it runs 'tailscale up' and displays an authentication link. You must click this link to add the node to your Tailscale network.
 
-.PARAMETER VmName
-Name of the Virtual Machine. Default: "SRE-Node-01"
 #>
 param ()
 
@@ -38,3 +36,4 @@ $sshCommand = "curl -fsSL https://tailscale.com/install.sh | sh && sudo tailscal
 & $sshPath -p 2222 -t -o StrictHostKeyChecking=no sysadmin@$ipAddress $sshCommand
 
 Stop-Transcript
+
