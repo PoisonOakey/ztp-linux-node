@@ -1,0 +1,46 @@
+---
+# Top-level play for the lab node.
+#
+# Roles are added here as they are written, replacing the corresponding
+# PowerShell stage. The pre_tasks are a connectivity smoke test: they prove the
+# control node can reach, authenticate to and gather facts from the target
+# before any role tries to change it.
+#
+# The acceptance test for this playbook is that a second consecutive run reports
+# changed=0. Every role added here has to preserve that.
+
+- name: Configure the SRE node
+  hosts: node
+  gather_facts: true
+
+  pre_tasks:
+    - name: Confirm the control node can reach the target
+      ansible.builtin.ping:
+
+    - name: Report what we connected to
+      ansible.builtin.debug:
+        msg: >-
+          Connected to {{ ansible_facts['distribution'] }}
+          {{ ansible_facts['distribution_version'] }}
+          ({{ ansible_facts['kernel'] }})
+          as {{ ansible_user }} --
+          {{ ansible_facts['processor_vcpus'] }} vCPU,
+          {{ (ansible_facts['memtotal_mb'] / 1024) | round(1) }} GB RAM
+
+  # Order matters, and not for the reason it first appears. Only `docker` is a
+  # hard dependency -- `monitoring` needs an engine to talk to. `tailscale` is
+  # independent of both, and it is deliberately last because it is the only role
+  # that can require a human: joining a tailnet needs the device approved in a
+  # browser unless a pre-authorised key is supplied. Running it earlier means a
+  # pending approval stops the monitoring stack from ever being deployed, which
+  # is a worse outcome than a node that is monitored but not yet on the tailnet.
+  roles:
+    # Replaces the apt/systemctl half of 06-setup-monitoring.ps1.
+    - docker
+
+    # Replaces the scp/compose half of 06-setup-monitoring.ps1. Needs docker.
+    - monitoring
+
+    # Replaces 05-setup-tailscale.ps1. Reports what to do rather than pretending
+    # to automate device approval -- see the role's defaults.
+    - tailscale

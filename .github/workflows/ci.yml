@@ -1,4 +1,4 @@
-name: PowerShell CI
+name: CI
 
 on:
   push:
@@ -49,3 +49,29 @@ jobs:
         run: |
           cp monitoring/.env.example monitoring/.env
           docker compose -f monitoring/docker-compose.yml config
+
+  # Static validation of the Ansible layer. This proves the playbook parses and
+  # follows conventions -- it does NOT prove it converges against a real node.
+  # Nothing here connects to anything. Convergence is verified by running
+  # site.yml twice against the VM and confirming the second run reports
+  # changed=0; see docs/ROADMAP.md.
+  ansible:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ansible
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install ansible-core and ansible-lint
+        run: pip install --disable-pip-version-check ansible-core ansible-lint
+
+      - name: Install collection dependencies
+        run: ansible-galaxy collection install -r requirements.yml
+
+      - name: Syntax check the playbook
+        run: ansible-playbook site.yml --syntax-check
+
+      - name: Lint roles and playbook
+        run: ansible-lint

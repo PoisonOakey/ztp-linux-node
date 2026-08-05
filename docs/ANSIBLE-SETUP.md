@@ -66,6 +66,8 @@ uname -r
 
 Expect a kernel like `4.4.0-26100-Microsoft`. If it ends in `-microsoft-standard-WSL2`, you are on WSL 2 and must convert.
 
+> **Expect one extra reboot here.** `wsl --install` enables `VirtualMachinePlatform` and sets `hypervisorlaunchtype` to `Auto` regardless of which WSL version you end up on. `01-host-prep.ps1` disables both so VirtualBox gets direct access to the CPU's virtualization extensions, so the next pipeline run will detect the change, re-apply it, and require a restart. This happens once. With WSL 1 it does not recur, because WSL 1 needs no hypervisor. See [TROUBLESHOOTING.md](TROUBLESHOOTING.md) #16.
+
 ### 2. Fix DNS
 
 WSL 1 generates `/etc/resolv.conf` from the Windows network configuration. If a VPN client manages DNS on the host — Tailscale, in this project's case — Windows reports placeholder addresses that WSL cannot use:
@@ -169,6 +171,69 @@ Add `-vvv` to any failing invocation — it dumps the full SSH negotiation and u
 ### Expected interpreter warning
 
 Ansible warns that it discovered `/usr/bin/python3.12` and a future install could change that. It is harmless, and pinning `ansible_python_interpreter=/usr/bin/python3` in the inventory silences it.
+
+---
+
+## Running playbooks: `ANSIBLE_CONFIG` is not optional
+
+Ansible refuses to load an `ansible.cfg` from a world-writable directory, on the reasoning that anyone able to write there could hijack the run. Everything under `/mnt/d` reports mode `0777` to Linux, so the repository's `ansible.cfg` is ignored by the normal current-directory discovery:
+
+```
+[WARNING]: Ansible is being run in a world writable directory
+(/mnt/d/ztp-homelab/ansible), ignoring it as an ansible.cfg source.
+```
+
+The failure that follows is misleading rather than obvious — the inventory is never parsed, so the play reports `skipping: no hosts matched` as though the inventory were wrong.
+
+Point at the config file explicitly instead:
+
+```bash
+cd /mnt/d/ztp-homelab/ansible
+ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml
+```
+
+An explicitly named config is honoured regardless of directory permissions.
+
+This is the same root cause as the private key needing a copy into `~/.ssh`: Windows filesystems mounted into WSL cannot express Unix permissions, and tools that check permissions for security reasons reject them. It is worth recognising the shape, because it will keep recurring with any tool that validates file modes.
+
+### Permanent alternative
+
+Mounting the Windows drives with real permission metadata fixes the whole class at once, at the cost of a restart and one privileged edit. Add to `/etc/wsl.conf`:
+
+```ini
+[automount]
+options = "metadata,umask=022,fmask=011"
+```
+
+Then `wsl --shutdown` from PowerShell and relaunch. Files under `/mnt/*` will report `0644` and directories `0755`, and `ansible.cfg` is picked up without the environment variable.
+
+The explicit `ANSIBLE_CONFIG` approach is preferred in this repository because it works on any machine without host-level configuration, which matters more for something another person might clone.
+
+---
+
+## Optional: zero-touch Tailscale
+
+By default, a freshly built node cannot join the tailnet on its own — device approval needs a human to open a URL in a browser, so the playbook stops with instructions rather than hanging on a prompt it cannot answer.
+
+A pre-authorised key removes that step. Set it once and every later rebuild joins automatically:
+
+1. Tailscale admin console → **Settings → Keys → Generate auth key**
+2. Make it **reusable** if you rebuild the VM — a one-off key authenticates a single node and then stops working
+3. Save it on the control node:
+
+```bash
+echo 'tskey-auth-...' > /mnt/d/ztp-homelab/ansible/.tailscale_auth_key
+```
+
+That file is gitignored, stays on the control node, and is read automatically on every run. It follows the same pattern as the generated Grafana password: a credential that lives beside the playbook and never enters the repository.
+
+A key can also be passed per-run, which takes precedence since extra-vars outrank defaults:
+
+```bash
+ansible-playbook site.yml -e tailscale_auth_key=tskey-auth-...
+```
+
+> The task that uses the key is marked `no_log`, so it never appears in output or in the orchestrator's transcript. That also censors any failure from it, so the role catches the failure and reports the likely cause — expired, revoked, or a one-off key already spent — without echoing the credential.
 
 ---
 

@@ -12,13 +12,19 @@ What is built, what is planned, and what is deliberately not being built. Kept h
 | VM provisioning | PowerShell + `VBoxManage` | Done — NAT with `virtio`, port-forwards, storage, media mounted |
 | OS installation | cloud-init / Subiquity | Done, with one known limitation (see below) |
 | Connectivity | PowerShell | Done — boots the node, polls the forwarded SSH port |
-| Configuration management | PowerShell over SSH | **Working, but hand-rolled — the target of the next phase** |
+| Configuration management | Ansible (from WSL) | Done — three roles, `changed=0` on a second consecutive run |
 | Observability | Docker / Prometheus / Grafana / node_exporter | Done — verified scraping the VM, not the container |
-| CI | GitHub Actions | Static validation only: `PSScriptAnalyzer`, config schema check, `docker compose config` |
+| CI | GitHub Actions | Static validation only: `PSScriptAnalyzer`, config schema check, `docker compose config`, `ansible-playbook --syntax-check`, `ansible-lint` |
 
 ---
 
-## Planned: move configuration management to Ansible
+## Done: configuration management moved to Ansible
+
+> **Status: complete.** All three roles exist, `Deploy-Node.ps1` invokes the playbook, the replaced PowerShell stages are deleted, the README describes the new layering, and CI lints the playbook. Every requirement below is met.
+>
+> One thing remains unproven: the migration has been verified against an already-provisioned node, not from a wiped VM through a full `Deploy-Node.ps1` run. Until that happens, the `-K` sudo prompt crossing the WSL boundary is the only untested path.
+>
+> The rationale below is kept in the present tense because it is the reasoning a reader should find, not a historical note.
 
 ### Rationale
 
@@ -26,7 +32,9 @@ Provisioning and configuration are separate concerns, and this repository curren
 
 Stages 01–04 provision a machine on a Windows host — creating a VM, driving `diskpart`, mounting media, booting it. That is legitimately PowerShell's job and it stays.
 
-Stages 05 and 06 configure a Linux node that is already running: `apt-get install`, `systemctl enable --now`, `docker compose up -d`, plus a hand-written idempotency guard (`dpkg --configure -a || true`). That is Ansible's core competency, currently reimplemented by hand.
+Stages 05 and 06 configure a Linux node that is already running: `apt-get install`, `systemctl enable --now`, `docker compose up -d`, plus a hand-written repair step (`dpkg --configure -a || true`). That is Ansible's core competency, currently reimplemented by hand.
+
+One correction worth making, because the opposite is often claimed: **Ansible does not repair dpkg for you.** That step survives the migration as an explicit task. What it gains is a condition — `dpkg --audit` is checked first, so a healthy node skips it — and an honest exit status instead of `|| true` discarding whatever went wrong. The improvement is real but it is smaller than "the tool handles it."
 
 This is not a rewrite for its own sake. It removes real code — `sysnative` path resolution for `ssh.exe`/`scp.exe`, heredocs piped over SSH, a hardcoded address in three files — and replaces imperative steps with declarative desired state.
 
@@ -64,10 +72,12 @@ ansible/
 ├── inventory.ini          node at 127.0.0.1:2222, user sysadmin, key-based
 ├── site.yml               top-level play
 └── roles/
-    ├── docker/            install docker.io + docker-compose-v2, enable the service
-    ├── tailscale/         install, run `tailscale up`, surface the auth URL
-    └── monitoring/        template .env, copy monitoring/, bring the stack up
+    ├── docker/            [done]    install docker.io + docker-compose-v2, enable the service
+    ├── tailscale/         [done]    install from the signed apt repo, join the tailnet if not already on it
+    └── monitoring/        [done]    render .env, copy the stack config, bring it up
 ```
+
+Progress is tracked in the list above rather than in prose, so it cannot quietly go stale. The PowerShell stages are not removed until all three roles exist — see requirement 6.
 
 `config/node.json` stays exactly as it is. It serves the PowerShell provisioning stages and describes hardware that exists before the OS does; Ansible gets its own inventory. Merging them would destroy the boundary this change exists to draw.
 

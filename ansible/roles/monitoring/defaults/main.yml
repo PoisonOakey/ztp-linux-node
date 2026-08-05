@@ -1,0 +1,20 @@
+---
+# Where the stack lives on the node. Matches the path the PowerShell stage used,
+# so an existing deployment is updated in place rather than duplicated.
+monitoring_dest: "/home/{{ ansible_user }}/monitoring"
+
+# Source directory on the control node -- the repository's monitoring/ folder.
+monitoring_src: "{{ playbook_dir }}/../monitoring"
+
+# The Grafana admin password is generated once and then reused.
+#
+# This is the constraint that matters most in this role. Generating a fresh
+# password on every run would rotate the credential unexpectedly AND break
+# idempotency, since the templated .env would differ every time and restart the
+# container. The `password` lookup writes the value to this file on first use and
+# reads the same value back afterwards.
+#
+# The file holds a real credential: it stays on the control node, is gitignored,
+# and is never copied to the node in its own right -- only the rendered .env is.
+monitoring_grafana_password_file: "{{ playbook_dir }}/.grafana_admin_password"
+monitoring_grafana_password_length: 20

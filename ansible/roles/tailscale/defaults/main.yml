@@ -1,0 +1,27 @@
+---
+# Pre-authorised key from the Tailscale admin console, which lets a node join the
+# tailnet with no human step. Without one, device approval needs a browser and
+# the role says so rather than hanging.
+#
+# Read from a file on the control node rather than a literal here, so the key is
+# supplied once and every later rebuild is hands-off. This mirrors how the
+# generated Grafana password is stored: the file is gitignored, stays on the
+# control node, and is never committed. Create it with:
+#
+#   echo 'tskey-auth-...' > ansible/.tailscale_auth_key
+#
+# Use a *reusable* key if you rebuild the VM -- a one-off key authenticates a
+# single node and then stops working. The key grants the ability to add devices
+# to your tailnet; treat it like any other credential, and set an expiry.
+#
+# A key passed on the command line still wins, since extra-vars outrank defaults:
+#   ansible-playbook site.yml -e tailscale_auth_key=tskey-auth-...
+tailscale_auth_key_file: "{{ playbook_dir }}/.tailscale_auth_key"
+tailscale_auth_key: "{{ lookup('file', tailscale_auth_key_file, errors='ignore') | default('', true) | trim }}"
+
+# Tailscale is not in Ubuntu's archive, so its own signed repository is added.
+# The release codename is taken from gathered facts rather than hardcoded, so
+# this keeps working when the node's Ubuntu version changes.
+tailscale_keyring_url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_facts['distribution_release'] }}.noarmor.gpg"
+tailscale_repo_url: "https://pkgs.tailscale.com/stable/ubuntu/{{ ansible_facts['distribution_release'] }}.tailscale-keyring.list"
+tailscale_keyring_path: /usr/share/keyrings/tailscale-archive-keyring.gpg

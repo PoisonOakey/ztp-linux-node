@@ -1,0 +1,64 @@
+---
+# Replaces the scp + `docker compose up -d` half of
+# scripts/06-setup-monitoring.ps1, which copied the whole monitoring/ directory
+# with `scp -r` on every run -- always transferring, never reporting whether
+# anything had actually changed.
+
+- name: Generate or read the Grafana admin password
+  ansible.builtin.set_fact:
+    monitoring_grafana_admin_password: >-
+      {{ lookup('password', monitoring_grafana_password_file ~ ' chars=ascii_letters,digits length=' ~ monitoring_grafana_password_length) }}
+  no_log: true
+
+- name: Create the monitoring directory on the node
+  ansible.builtin.file:
+    path: "{{ monitoring_dest }}"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  become: true
+
+# Files are listed explicitly rather than copying the directory wholesale. The
+# control node's monitoring/ also contains .env and .env.example; the rendered
+# .env is handled below and the example template has no business on the node.
+- name: Copy the monitoring stack configuration
+  ansible.builtin.copy:
+    src: "{{ monitoring_src }}/{{ item }}"
+    dest: "{{ monitoring_dest }}/{{ item }}"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0644"
+  become: true
+  loop:
+    - docker-compose.yml
+    - prometheus.yml
+  register: monitoring_config
+
+- name: Render the Grafana environment file
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ monitoring_dest }}/.env"
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    # Contains the admin password -- readable by the owner only.
+    mode: "0600"
+  become: true
+  no_log: true
+  register: monitoring_env
+
+- name: Bring the monitoring stack up
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_dest }}"
+    state: present
+  become: true
+  register: monitoring_stack
+
+- name: Report the running containers
+  ansible.builtin.debug:
+    msg: >-
+      {{ monitoring_stack.containers
+         | map(attribute='Name')
+         | join(', ') }}
+      running from {{ monitoring_dest }}
+  when: monitoring_stack.containers | default([]) | length > 0

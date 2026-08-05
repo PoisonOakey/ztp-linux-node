@@ -98,7 +98,7 @@ Write-Output "`n-> Creating Virtual Machine architecture..."
 
 # A rebuilt VM reinstalls the OS, which generates a fresh SSH host key -- but the
 # previous node's key is still pinned in ~/.ssh/known_hosts against the same
-# forwarded address, so stages 05 and 06 print a REMOTE HOST IDENTIFICATION HAS
+# forwarded address, so the Ansible run prints a REMOTE HOST IDENTIFICATION HAS
 # CHANGED warning mid-pipeline. `-o StrictHostKeyChecking=no` does not cover this:
 # it only suppresses prompts for *unknown* hosts, never a *changed* one. Drop the
 # stale pin now that the old node is gone. ssh-keygen -R is a no-op when there is

@@ -1,0 +1,11 @@
+---
+# Collections this playbook depends on beyond ansible-core.
+#
+# Install with:
+#   ansible-galaxy collection install -r requirements.yml
+#
+# The Ubuntu `ansible` package bundles these already, so a control node set up
+# per docs/ANSIBLE-SETUP.md needs no extra step. CI installs ansible-core alone,
+# which does not, so the dependency is declared explicitly rather than assumed.
+collections:
+  - name: community.docker

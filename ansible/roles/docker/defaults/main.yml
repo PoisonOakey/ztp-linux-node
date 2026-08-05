@@ -1,0 +1,13 @@
+---
+# Distribution packages rather than Docker's own apt repository. The lab node
+# only needs a working engine and the compose plugin, and Ubuntu's packages come
+# with the release -- adding an external repo and GPG key would be more moving
+# parts for no gain here. Override if a newer engine is ever needed.
+docker_packages:
+  - docker.io
+  - docker-compose-v2
+
+# Ubuntu's docker.io package leaves the service enabled by default, but state is
+# asserted explicitly so a node that has drifted gets corrected rather than
+# assumed correct.
+docker_service_name: docker
