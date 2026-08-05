@@ -33,6 +33,7 @@
   loop:
     - docker-compose.yml
     - prometheus.yml
+    - alert_rules.yml
   register: monitoring_config
 
 - name: Render the Grafana environment file

@@ -1,6 +1,10 @@
 # ZTP Homelab Automation
 
+**Ansible** · **Docker** · **Prometheus** · **Grafana** · **cloud-init** · **Tailscale** · **GitHub Actions** · **PowerShell** · **Ubuntu Linux**
+
 > An automated Infrastructure-as-Code (IaC) pipeline that provisions, configures, and secures a headless Ubuntu Server node via VirtualBox on a Windows host.
+>
+> Zero-touch OS install, declarative configuration management, and a monitoring stack with alerting — from one command.
 
 ---
 
@@ -59,7 +63,7 @@ The split is by tool boundary, not file numbering — stage 04 drives `VBoxManag
 | **OS Automation** | Cloud-Init / Subiquity | Unattended install, seeded from a temporary disk |
 | **Configuration** | Ansible | Declarative desired state, run from WSL |
 | **Secure Access** | Tailscale | Mesh VPN, no inbound ports |
-| **Observability** | Docker / Prometheus / Grafana | Metrics scraped from the VM |
+| **Observability** | Prometheus / Grafana / node_exporter | Host metrics scraped from the VM, five alert rules evaluated |
 
 ---
 

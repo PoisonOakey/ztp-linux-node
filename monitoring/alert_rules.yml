@@ -1,0 +1,64 @@
+groups:
+  - name: node
+    rules:
+      # Fires when a scrape target stops responding. `up` is synthesised by
+      # Prometheus for every target, so this catches the exporter crashing, the
+      # container stopping, and the node going away -- without needing the node
+      # to report anything itself.
+      - alert: TargetDown
+        expr: up == 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "{{ $labels.job }} target is down"
+          description: "{{ $labels.instance }} has failed scrapes for 2 minutes."
+
+      # 15% free is late enough to avoid noise and early enough to act. Excludes
+      # pseudo-filesystems, which are always near-full and never actionable.
+      - alert: DiskSpaceLow
+        expr: |
+          node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}
+            / node_filesystem_size_bytes{fstype!~"tmpfs|overlay|squashfs"} < 0.15
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Less than 15% disk free on {{ $labels.mountpoint }}"
+          description: "{{ $labels.instance }} {{ $labels.mountpoint }} is at {{ $value | humanizePercentage }} free."
+
+      # Predictive rather than threshold-based: a disk sitting at 80% and stable
+      # needs no one woken up, whereas one filling fast does. `predict_linear`
+      # extrapolates the last hour forward 24 hours.
+      - alert: DiskWillFillIn24Hours
+        expr: |
+          predict_linear(node_filesystem_avail_bytes{fstype!~"tmpfs|overlay|squashfs"}[1h], 24 * 3600) < 0
+        for: 30m
+        labels:
+          severity: warning
+        annotations:
+          summary: "{{ $labels.mountpoint }} will fill within 24 hours"
+          description: "Based on the last hour, {{ $labels.instance }} {{ $labels.mountpoint }} runs out of space within a day."
+
+      # MemAvailable, not MemFree -- free memory excludes reclaimable cache and
+      # reads alarmingly low on a healthy Linux host.
+      - alert: MemoryPressure
+        expr: |
+          node_memory_MemAvailable_bytes / node_memory_MemTotal_bytes < 0.10
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "Less than 10% memory available"
+          description: "{{ $labels.instance }} has {{ $value | humanizePercentage }} memory available."
+
+      # Load average per core, so the threshold holds regardless of vCPU count.
+      - alert: HighCpuLoad
+        expr: |
+          node_load15 / count without (cpu, mode) (node_cpu_seconds_total{mode="idle"}) > 2
+        for: 15m
+        labels:
+          severity: warning
+        annotations:
+          summary: "15-minute load average above 2 per core"
+          description: "{{ $labels.instance }} load15 is {{ $value | printf \"%.2f\" }} per core."

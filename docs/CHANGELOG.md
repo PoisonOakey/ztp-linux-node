@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Prometheus alert rules (`monitoring/alert_rules.yml`):** the stack collected metrics and alerted on nothing, which is half an observability system. Five rules: `TargetDown`, `DiskSpaceLow`, `DiskWillFillIn24Hours`, `MemoryPressure`, `HighCpuLoad`. Two are deliberately not naive thresholds -- `DiskWillFillIn24Hours` uses `predict_linear`, because a disk sitting at 80% and stable needs nobody woken up while one filling fast does, and `HighCpuLoad` divides `node_load15` by core count so the threshold holds regardless of vCPU sizing. `MemoryPressure` uses `MemAvailable` rather than `MemFree`, which excludes reclaimable cache and reads alarmingly low on a healthy Linux host. Verified on the node: all five report `health=ok`, so the expressions evaluate rather than merely parse.
+- **Alerts are evaluated, not routed.** They are visible at `:9090/alerts`; nothing is notified yet. Alertmanager is tracked as R4 in `ROADMAP.md` rather than implied.
+- **Tech stack line at the top of `README.md`.** The first thing a reader saw was prose. The tools are now listed above the fold, where a skim finds them.
+
 ### Changed
 - **Documentation trimmed.** `README.md` 1,518 -> 946 words and `ANSIBLE-SETUP.md` 1,593 -> 641, with no commands or warnings lost. Both had grown by answering "why" inline instead of linking to the document that already answered it. The CI section in particular described three jobs and then listed the commands that *are* those three jobs; the description is gone and the commands stayed.
 - **`ROADMAP.md` restructured as a tracker.** It had become a retrospective essay about a finished migration -- `Scope` and `Requirements` described planning for work already merged, which is `CHANGELOG.md`'s job. Now three tables: what is Built, what is Planned (R1 the stage 03 timing race, R2 credentials into `ansible-vault`, R3 convergence testing in CI), and what is explicitly Not planned. 1,400 -> 768 words.
