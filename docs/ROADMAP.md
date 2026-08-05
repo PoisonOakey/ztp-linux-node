@@ -68,7 +68,7 @@ ansible/
 └── roles/
     ├── docker/            [done]    install docker.io + docker-compose-v2, enable the service
     ├── tailscale/         [done]    install from the signed apt repo, join the tailnet if not already on it
-    └── monitoring/        [pending] template .env, copy monitoring/, bring the stack up
+    └── monitoring/        [done]    render .env, copy the stack config, bring it up
 ```
 
 Progress is tracked in the list above rather than in prose, so it cannot quietly go stale. The PowerShell stages are not removed until all three roles exist — see requirement 6.

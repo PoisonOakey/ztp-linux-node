@@ -17,3 +17,6 @@ docs/WORK-ORDER.md
 # Ansible run artifacts
 *.retry
 ansible/*.log
+
+# Generated Grafana admin password -- lives on the control node only
+ansible/.grafana_admin_password

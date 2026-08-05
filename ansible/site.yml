@@ -35,3 +35,7 @@
     # the device unless a pre-authorised key is supplied, so this role reports
     # what to do rather than pretending to automate it. See the role's defaults.
     - tailscale
+
+    # Replaces the scp/compose half of 06-setup-monitoring.ps1. Depends on the
+    # docker role having run first.
+    - monitoring
