@@ -118,6 +118,8 @@ The entire pipeline is wrapped in a master orchestrator.
 ## 📚 Documentation
 - [CHANGELOG.md](docs/CHANGELOG.md) - Version history and bug fixes.
 - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Detailed root-cause analysis for advanced edge cases.
+- [ROADMAP.md](docs/ROADMAP.md) - What is built, what is planned, and what is deliberately out of scope.
+- [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md) - Control-node prerequisites on Windows, and why WSL 1 rather than WSL 2.
 
 ---
 

@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- **`docs/ROADMAP.md`:** current state of each layer, the planned move of configuration management to Ansible with its scope and requirements, the deferred stage 03 ISO patch, and explicit non-goals with reasoning.
+- **`docs/ANSIBLE-SETUP.md`:** one-time control-node setup on Windows. Documents why WSL **1** is required rather than WSL 2 -- WSL 2 needs `VirtualMachinePlatform`, which `01-host-prep.ps1` disables so VirtualBox gets raw VT-x, and the two cannot coexist. Also covers the DNS failure caused by a VPN client managing host DNS, forcing APT over IPv4, and the private-key permission workaround for files under `/mnt/c`. Verified end to end against the provisioned node.
+
 ## [1.9.0] - 2026-08-05
 ### Fixed
 - **Install wait-loop could hang forever:** `Deploy-Node.ps1`'s `while ($isInstalling)` loop polled `VBoxManage showvminfo` every 15s with no deadline and no escape, so a stalled install blocked the orchestrator indefinitely with no diagnostic. Added a parameterized deadline (`-InstallTimeoutMinutes`, default 20) and an explicit throw when `showvminfo` stops returning a state at all (VM deleted, or VirtualBox unreachable). Both errors name the VM and the transcript path.
