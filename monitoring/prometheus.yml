@@ -7,6 +7,13 @@ global:
 rule_files:
   - /etc/prometheus/alert_rules.yml
 
+# Where firing alerts are sent. Prometheus evaluates the rules; Alertmanager
+# decides who hears about them, groups related alerts, and holds silences.
+alerting:
+  alertmanagers:
+    - static_configs:
+        - targets: ['alertmanager:9093']
+
 scrape_configs:
   - job_name: 'prometheus'
     static_configs:

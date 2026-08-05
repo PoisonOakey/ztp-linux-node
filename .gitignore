@@ -21,3 +21,4 @@ ansible/*.log
 # Credentials that live on the control node only, never in the repository
 ansible/.grafana_admin_password
 ansible/.tailscale_auth_key
+ansible/.discord_webhook_url

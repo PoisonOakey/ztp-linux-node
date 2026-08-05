@@ -119,6 +119,7 @@ Write-Output "-> Configuring NAT with Virtio performance driver and Port Forward
 & $VBoxManage modifyvm $VmName --natpf1 "guestssh,tcp,,2222,,22"
 & $VBoxManage modifyvm $VmName --natpf1 "grafana,tcp,,3000,,3000"
 & $VBoxManage modifyvm $VmName --natpf1 "prometheus,tcp,,9090,,9090"
+& $VBoxManage modifyvm $VmName --natpf1 "alertmanager,tcp,,9093,,9093"
 
 # 4. Provision Storage and Mount Media
 if (Test-Path $DiskPath) {

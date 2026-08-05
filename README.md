@@ -1,6 +1,6 @@
 # ZTP Homelab Automation
 
-**Ansible** · **Docker** · **Prometheus** · **Grafana** · **cloud-init** · **Tailscale** · **GitHub Actions** · **PowerShell** · **Ubuntu Linux**
+**Ansible** · **Docker** · **Prometheus** · **Alertmanager** · **Grafana** · **cloud-init** · **Tailscale** · **GitHub Actions** · **PowerShell** · **Ubuntu Linux**
 
 > An automated Infrastructure-as-Code (IaC) pipeline that provisions, configures, and secures a headless Ubuntu Server node via VirtualBox on a Windows host.
 >
@@ -75,7 +75,8 @@ The split is by tool boundary, not file numbering — stage 04 drives `VBoxManag
 | **OS Automation** | Cloud-Init / Subiquity | Unattended install, seeded from a temporary disk |
 | **Configuration** | Ansible | Declarative desired state, run from WSL |
 | **Secure Access** | Tailscale | Mesh VPN, no inbound ports |
-| **Observability** | Prometheus / Grafana / node_exporter | Host metrics from the VM, five alert rules, dashboard provisioned as code |
+| **Observability** | Prometheus / Grafana / node_exporter | Host metrics from the VM, dashboard provisioned as code |
+| **Alerting** | Prometheus rules / Alertmanager | Five rules, grouped and routed to Discord, each linked to a [runbook](docs/RUNBOOK.md) |
 
 ---
 
@@ -149,6 +150,7 @@ cd ansible && ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
 |---|---|
 | **Grafana** | http://localhost:3000 — user `admin`, dashboard already provisioned |
 | **Prometheus** | http://localhost:9090 — `/targets` for scrape health, `/alerts` for rule state |
+| **Alertmanager** | http://localhost:9093 — grouped alerts and silences |
 | **SSH** | `ssh -p 2222 sysadmin@127.0.0.1` |
 
 The Grafana password is generated on the first run and reused after that. It lives on your machine only — gitignored, never in the repo:
@@ -173,6 +175,7 @@ cat ansible/.grafana_admin_password
 ## 📚 Documentation
 - [CHANGELOG.md](docs/CHANGELOG.md) - Version history and bug fixes.
 - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Detailed root-cause analysis for advanced edge cases.
+- [RUNBOOK.md](docs/RUNBOOK.md) - One section per alert: what it means, how to confirm it, what to do.
 - [ROADMAP.md](docs/ROADMAP.md) - Tracker: what is built, what is next, what is deliberately not being built.
 - [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md) - Control-node prerequisites on Windows, and why WSL 1 rather than WSL 2.
 

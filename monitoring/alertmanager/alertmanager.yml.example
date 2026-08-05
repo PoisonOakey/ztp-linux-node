@@ -1,0 +1,37 @@
+# Shape of the Alertmanager config, without the credential.
+#
+# The real file is rendered onto the node by the Ansible monitoring role from
+# roles/monitoring/templates/alertmanager.yml.j2, with the Discord webhook read
+# from ansible/.discord_webhook_url on the control node. That file is gitignored.
+#
+# To enable notifications:
+#   Discord -> Server Settings -> Integrations -> Webhooks -> New Webhook
+#   echo 'https://discord.com/api/webhooks/...' > ansible/.discord_webhook_url
+#
+# Without it the stack still runs. Alerts group, inhibit and can be silenced in
+# the Alertmanager UI; they are simply not sent anywhere.
+
+route:
+  group_by: ['alertname', 'severity']
+  group_wait: 30s
+  group_interval: 5m
+  repeat_interval: 4h
+  receiver: discord
+
+inhibit_rules:
+  - source_matchers: [severity="critical"]
+    target_matchers: [severity="warning"]
+    equal: ['instance']
+
+receivers:
+  - name: 'null'
+
+  - name: discord
+    discord_configs:
+      - webhook_url: https://discord.com/api/webhooks/REPLACE/ME
+        title: '[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}'
+        message: |-
+          {{ range .Alerts }}{{ .Annotations.summary }}
+          {{ .Annotations.description }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}

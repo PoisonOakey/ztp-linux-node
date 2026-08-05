@@ -1,0 +1,24 @@
+---
+# `docker compose up -d` only recreates a container when its *definition*
+# changes. Editing a bind-mounted config file leaves the container untouched and
+# still running the configuration it read at startup -- so a changed
+# prometheus.yml silently has no effect until something restarts it.
+#
+# Handlers restart only the affected service, and only when its config actually
+# changed, which keeps a no-op run a genuine no-op.
+
+- name: Restart Prometheus
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_dest }}"
+    services:
+      - prometheus
+    state: restarted
+  become: true
+
+- name: Restart Alertmanager
+  community.docker.docker_compose_v2:
+    project_src: "{{ monitoring_dest }}"
+    services:
+      - alertmanager
+    state: restarted
+  become: true

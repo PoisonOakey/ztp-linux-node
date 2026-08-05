@@ -1,0 +1,44 @@
+{{ ansible_managed | comment }}
+# Rendered by the monitoring role. The Discord webhook is read from a file on the
+# control node and is never committed -- see monitoring/alertmanager/alertmanager.yml.example
+# for the shape of this file without the credential.
+
+route:
+  # Alerts are grouped so a node going away produces one message rather than one
+  # per rule that trips as a consequence.
+  group_by: ['alertname', 'severity']
+  # Wait this long after the first alert in a new group before sending, so
+  # related alerts arriving together are batched.
+  group_wait: 30s
+  # Minimum gap before sending an update about an existing group.
+  group_interval: 5m
+  # How long before re-sending an alert that is still firing. Long enough not to
+  # be noise, short enough that a forgotten alert resurfaces.
+  repeat_interval: 4h
+{% if monitoring_discord_webhook | length > 0 %}
+  receiver: discord
+{% else %}
+  receiver: 'null'
+{% endif %}
+
+# A critical alert suppresses warnings for the same target. If the node is gone,
+# being told its disk is also unreachable adds nothing.
+inhibit_rules:
+  - source_matchers: [severity="critical"]
+    target_matchers: [severity="warning"]
+    equal: ['instance']
+
+receivers:
+  - name: 'null'
+
+{% if monitoring_discord_webhook | length > 0 %}
+  - name: discord
+    discord_configs:
+      - webhook_url: {{ monitoring_discord_webhook }}
+        title: '{% raw %}[{{ .Status | toUpper }}] {{ .CommonLabels.alertname }}{% endraw %}'
+        message: |-
+          {% raw %}{{ range .Alerts }}{{ .Annotations.summary }}
+          {{ .Annotations.description }}
+          Runbook: {{ .Annotations.runbook_url }}
+          {{ end }}{% endraw %}
+{% endif %}

@@ -11,6 +11,7 @@ groups:
         labels:
           severity: critical
         annotations:
+          runbook_url: "https://github.com/PoisonOakey/ztp-homelab/blob/patch-v2/docs/RUNBOOK.md#targetdown"
           summary: "{{ $labels.job }} target is down"
           description: "{{ $labels.instance }} has failed scrapes for 2 minutes."
 
@@ -24,6 +25,7 @@ groups:
         labels:
           severity: warning
         annotations:
+          runbook_url: "https://github.com/PoisonOakey/ztp-homelab/blob/patch-v2/docs/RUNBOOK.md#diskspacelow"
           summary: "Less than 15% disk free on {{ $labels.mountpoint }}"
           description: "{{ $labels.instance }} {{ $labels.mountpoint }} is at {{ $value | humanizePercentage }} free."
 
@@ -37,6 +39,7 @@ groups:
         labels:
           severity: warning
         annotations:
+          runbook_url: "https://github.com/PoisonOakey/ztp-homelab/blob/patch-v2/docs/RUNBOOK.md#diskwillfillin24hours"
           summary: "{{ $labels.mountpoint }} will fill within 24 hours"
           description: "Based on the last hour, {{ $labels.instance }} {{ $labels.mountpoint }} runs out of space within a day."
 
@@ -49,6 +52,7 @@ groups:
         labels:
           severity: warning
         annotations:
+          runbook_url: "https://github.com/PoisonOakey/ztp-homelab/blob/patch-v2/docs/RUNBOOK.md#memorypressure"
           summary: "Less than 10% memory available"
           description: "{{ $labels.instance }} has {{ $value | humanizePercentage }} memory available."
 
@@ -60,5 +64,6 @@ groups:
         labels:
           severity: warning
         annotations:
+          runbook_url: "https://github.com/PoisonOakey/ztp-homelab/blob/patch-v2/docs/RUNBOOK.md#highcpuload"
           summary: "15-minute load average above 2 per core"
           description: "{{ $labels.instance }} load15 is {{ $value | printf \"%.2f\" }} per core."

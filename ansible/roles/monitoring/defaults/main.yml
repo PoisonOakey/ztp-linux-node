@@ -18,3 +18,17 @@ monitoring_src: "{{ playbook_dir }}/../monitoring"
 # and is never copied to the node in its own right -- only the rendered .env is.
 monitoring_grafana_password_file: "{{ playbook_dir }}/.grafana_admin_password"
 monitoring_grafana_password_length: 20
+
+# Discord webhook Alertmanager posts to. Optional: without it the stack still
+# runs and alerts still group, inhibit and can be silenced -- they are just not
+# sent anywhere. Read from a file so it is supplied once rather than per run, and
+# gitignored for the same reason as the two credentials above.
+#
+#   echo 'https://discord.com/api/webhooks/...' > ansible/.discord_webhook_url
+# The uid prom/alertmanager runs as. Its config is bind-mounted and read by the
+# process itself, so the file has to be readable by this user rather than by the
+# login account.
+monitoring_alertmanager_uid: 65534
+
+monitoring_discord_webhook_file: "{{ playbook_dir }}/.discord_webhook_url"
+monitoring_discord_webhook: "{{ lookup('file', monitoring_discord_webhook_file, errors='ignore') | default('', true) | trim }}"

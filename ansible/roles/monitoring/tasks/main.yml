@@ -34,6 +34,7 @@
     - docker-compose.yml
     - prometheus.yml
     - alert_rules.yml
+  notify: Restart Prometheus
 
 # Grafana's provisioning tree is copied whole rather than file by file: it is a
 # directory structure Grafana walks on startup, and listing each file would mean
@@ -48,6 +49,42 @@
     directory_mode: "0755"
   become: true
   register: monitoring_config
+
+- name: Create the Alertmanager config directory on the node
+  ansible.builtin.file:
+    path: "{{ monitoring_dest }}/alertmanager"
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    mode: "0755"
+  become: true
+
+# Templated rather than copied because it carries the Discord webhook. The
+# repository holds only alertmanager.yml.example, which shows the shape without
+# the credential.
+# Owned by the container's user rather than the login user. Alertmanager reads
+# this file itself as `nobody` (65534), unlike Grafana's .env which the Docker
+# daemon reads as root before the container starts -- so a 0600 file owned by
+# sysadmin renders fine and then fails with "permission denied" at startup.
+# 0400 as 65534 is tighter than 0644 would be: the container can read it and no
+# ordinary user on the node can.
+- name: Render the Alertmanager configuration
+  ansible.builtin.template:
+    src: alertmanager.yml.j2
+    dest: "{{ monitoring_dest }}/alertmanager/alertmanager.yml"
+    owner: "{{ monitoring_alertmanager_uid }}"
+    group: "{{ monitoring_alertmanager_uid }}"
+    mode: "0400"
+  become: true
+  no_log: true
+  notify: Restart Alertmanager
+
+- name: Report whether alert notifications are configured
+  ansible.builtin.debug:
+    msg: >-
+      {{ 'Alertmanager will post firing alerts to Discord.'
+         if monitoring_discord_webhook | length > 0
+         else 'No webhook at ' ~ monitoring_discord_webhook_file ~ ' -- alerts will group and be silenceable, but not sent anywhere.' }}
 
 - name: Render the Grafana environment file
   ansible.builtin.template:
@@ -68,11 +105,39 @@
   become: true
   register: monitoring_stack
 
+# Handlers normally run at the end of the play. Flush them here so any config
+# restart happens before the health check below, rather than after it.
+- name: Apply pending config restarts before checking health
+  ansible.builtin.meta: flush_handlers
+
+# `docker compose up` succeeding means the containers were created, not that they
+# stayed up. A container with a bad config exits and is restarted forever, and
+# the play would report success over a stack that is crash-looping. Give them a
+# moment to fail, then check what is actually running.
+- name: Wait for containers to settle
+  ansible.builtin.pause:
+    seconds: 10
+
+- name: Check for containers that are not running
+  ansible.builtin.command: docker compose ps --format json
+  args:
+    chdir: "{{ monitoring_dest }}"
+  register: monitoring_ps
+  changed_when: false
+  become: true
+
+- name: Fail if any container is not up
+  ansible.builtin.fail:
+    msg: >-
+      {{ item.Service }} is '{{ item.State }}' after deployment, not running.
+      Check its logs on the node: docker logs {{ item.Name }}
+  loop: "{{ monitoring_ps.stdout_lines | map('from_json') | list }}"
+  loop_control:
+    label: "{{ item.Service }}"
+  when: item.State != 'running'
+
 - name: Report the running containers
   ansible.builtin.debug:
     msg: >-
-      {{ monitoring_stack.containers
-         | map(attribute='Name')
-         | join(', ') }}
+      {{ monitoring_ps.stdout_lines | map('from_json') | map(attribute='Service') | sort | join(', ') }}
       running from {{ monitoring_dest }}
-  when: monitoring_stack.containers | default([]) | length > 0
