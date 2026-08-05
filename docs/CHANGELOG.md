@@ -6,6 +6,11 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Fixed
+- **Tailscale package not found on a freshly provisioned node:** the role added Tailscale's apt repository and then installed with `cache_valid_time: 3600`. The `docker` role runs apt with the same one-hour window seconds earlier, so by the time this role ran the cache looked fresh, the index refresh was skipped, the new repository was never indexed, and apt reported `No package matching 'tailscale' is available`. A cache optimisation that is correct in isolation and wrong the moment a repository is added.
+- **The first fix could not recover from its own failure:** refreshing only when the repository definition *changed* left a run that had added the repository and then failed permanently stuck -- the next run saw no change, skipped the refresh, and failed identically. The condition now describes the state required (apt knows about the package) rather than the event expected (the repository was just added).
+- **Role order blocked monitoring behind a human step:** `tailscale` ran before `monitoring`, so a node awaiting browser device approval never got its observability stack. Only `docker` is a real dependency; `tailscale` is independent and now runs last. A node that is monitored but not yet on the tailnet is a better intermediate state than the reverse.
+
 ### Added
 - **CI validates the Ansible layer:** a third parallel job runs `ansible-playbook --syntax-check` and `ansible-lint`. Added as its own job rather than folded into the Compose job so a failure names its own concern. `ansible/requirements.yml` declares the `community.docker` dependency explicitly -- the Ubuntu `ansible` package bundles it, but CI installs `ansible-core` alone, which does not.
 - **README states what CI does not prove:** all three jobs are static validation. Nothing in CI connects to anything, so it cannot show that the pipeline provisions a VM or that the playbook converges. Convergence is verified by hand, by running `site.yml` twice and confirming `changed=0`.

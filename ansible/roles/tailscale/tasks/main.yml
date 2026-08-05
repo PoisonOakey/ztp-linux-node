@@ -17,6 +17,7 @@
     owner: root
     group: root
   become: true
+  register: tailscale_keyring
 
 - name: Add the Tailscale apt repository
   ansible.builtin.get_url:
@@ -28,12 +29,36 @@
   become: true
   register: tailscale_repo
 
+# The apt index must be refreshed after adding a repository, and this cannot be
+# left to `cache_valid_time` on the install below: the docker role runs apt with
+# a one-hour cache window moments earlier, so by the time this role runs the
+# cache looks fresh, the refresh is skipped, the new repository is never indexed,
+# and the package is reported as not existing.
+#
+# Nor is it enough to refresh only when the repository definition changes. A run
+# that added the repository and then failed leaves the files in place, so the
+# next run sees no change, skips the refresh, and fails identically -- stuck
+# permanently. The condition has to describe the state we need (apt knows about
+# the package), not the event we expect (the repository was just added).
+- name: Check whether apt knows about the tailscale package
+  ansible.builtin.command: apt-cache policy tailscale
+  register: tailscale_policy
+  changed_when: false
+  become: true
+
+- name: Refresh the apt cache
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+  when: >-
+    tailscale_keyring is changed
+    or tailscale_repo is changed
+    or (tailscale_policy.stdout | trim | length) == 0
+
 - name: Install Tailscale
   ansible.builtin.apt:
     name: tailscale
     state: present
-    update_cache: true
-    cache_valid_time: 3600
   become: true
 
 - name: Ensure the tailscaled service is enabled and running
