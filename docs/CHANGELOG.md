@@ -6,6 +6,10 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **Zero-touch Tailscale enrolment:** a pre-authorised key saved to `ansible/.tailscale_auth_key` on the control node is read automatically, so a rebuilt VM joins the tailnet with no human step. The file is gitignored and follows the same pattern as the generated Grafana password -- a credential that lives beside the playbook and never enters the repository. A key passed as an extra-var still takes precedence. Without a key the role behaves as before, stopping with instructions rather than hanging on a browser prompt it cannot answer.
+- **Actionable failure when a key is rejected:** the task carrying the key is `no_log`, which also censored its failure output and reported an expired key as an opaque `non-zero return code`. The task is now a `block`/`rescue` that reports the likely cause -- expired, revoked, or a one-off key already spent -- and names the file to replace, without echoing the credential.
+
 ### Fixed
 - **Tailscale package not found on a freshly provisioned node:** the role added Tailscale's apt repository and then installed with `cache_valid_time: 3600`. The `docker` role runs apt with the same one-hour window seconds earlier, so by the time this role ran the cache looked fresh, the index refresh was skipped, the new repository was never indexed, and apt reported `No package matching 'tailscale' is available`. A cache optimisation that is correct in isolation and wrong the moment a repository is added.
 - **The first fix could not recover from its own failure:** refreshing only when the repository definition *changed* left a run that had added the repository and then failed permanently stuck -- the next run saw no change, skipped the refresh, and failed identically. The condition now describes the state required (apt knows about the package) rather than the event expected (the repository was just added).

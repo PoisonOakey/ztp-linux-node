@@ -211,6 +211,32 @@ The explicit `ANSIBLE_CONFIG` approach is preferred in this repository because i
 
 ---
 
+## Optional: zero-touch Tailscale
+
+By default, a freshly built node cannot join the tailnet on its own — device approval needs a human to open a URL in a browser, so the playbook stops with instructions rather than hanging on a prompt it cannot answer.
+
+A pre-authorised key removes that step. Set it once and every later rebuild joins automatically:
+
+1. Tailscale admin console → **Settings → Keys → Generate auth key**
+2. Make it **reusable** if you rebuild the VM — a one-off key authenticates a single node and then stops working
+3. Save it on the control node:
+
+```bash
+echo 'tskey-auth-...' > /mnt/d/ztp-homelab/ansible/.tailscale_auth_key
+```
+
+That file is gitignored, stays on the control node, and is read automatically on every run. It follows the same pattern as the generated Grafana password: a credential that lives beside the playbook and never enters the repository.
+
+A key can also be passed per-run, which takes precedence since extra-vars outrank defaults:
+
+```bash
+ansible-playbook site.yml -e tailscale_auth_key=tskey-auth-...
+```
+
+> The task that uses the key is marked `no_log`, so it never appears in output or in the orchestrator's transcript. That also censors any failure from it, so the role catches the failure and reports the likely cause — expired, revoked, or a one-off key already spent — without echoing the credential.
+
+---
+
 ## Persistence
 
 All of the above survives reboots. `wsl.conf`, the pinned resolver, the APT configuration, and the copied key are all on the WSL filesystem. This is a one-time setup, not a per-session ritual.

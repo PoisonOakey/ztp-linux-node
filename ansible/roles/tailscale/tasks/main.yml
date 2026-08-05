@@ -95,15 +95,32 @@
   when: tailscale_connected
 
 # Only reached on a node that is not yet on the tailnet.
+#
+# The command carries the key as an argument, so the task is marked no_log to
+# keep it out of task output and the orchestrator's transcript. That censors the
+# failure message too, which would otherwise leave an expired key reported as an
+# opaque "non-zero return code" -- hence the rescue, which explains the likely
+# cause without echoing the credential.
 - name: Authenticate the node with a pre-authorised key
-  ansible.builtin.command: "tailscale up --auth-key={{ tailscale_auth_key }}"
-  become: true
-  # The key must not appear in output or in the transcript.
-  no_log: true
-  changed_when: true
   when:
     - not tailscale_connected
     - tailscale_auth_key | length > 0
+  block:
+    - name: Run tailscale up with the pre-authorised key
+      ansible.builtin.command: "tailscale up --auth-key={{ tailscale_auth_key }}"
+      become: true
+      no_log: true
+      changed_when: true
+  rescue:
+    - name: Explain the rejected key without echoing it
+      ansible.builtin.fail:
+        msg: >-
+          `tailscale up` rejected the pre-authorised key read from
+          {{ tailscale_auth_key_file }}. It is most likely expired, revoked, or a
+          one-off key that has already authenticated a node -- use a reusable key
+          if you rebuild the VM. Generate a replacement in the Tailscale admin
+          console under Settings -> Keys and overwrite that file. The key itself
+          is not shown here because the task is marked no_log.
 
 # `tailscale up` without a key blocks until a human opens the printed URL in a
 # browser. Ansible buffers task output until the task finishes, so running it
@@ -113,10 +130,12 @@
   ansible.builtin.fail:
     msg: >-
       Tailscale is installed but this node has not joined a tailnet, and no
-      tailscale_auth_key was supplied. Device approval requires a human, so it is
-      not automated here. Either run `sudo tailscale up` on the node and open the
-      URL it prints, or re-run this play with
-      -e tailscale_auth_key=tskey-auth-... from the Tailscale admin console.
+      auth key was found at {{ tailscale_auth_key_file }}. Device approval
+      requires a human, so it is not automated here. Either generate a reusable
+      key in the Tailscale admin console (Settings -> Keys) and save it with
+      `echo 'tskey-auth-...' > ansible/.tailscale_auth_key`, after which every
+      rebuild joins automatically -- or run `sudo tailscale up` on the node once
+      and open the URL it prints.
   when:
     - not tailscale_connected
     - tailscale_auth_key | length == 0
