@@ -92,7 +92,7 @@ The split is by tool boundary, not file numbering — stage 04 drives `VBoxManag
 ## 📂 Repository Structure
 
 ```text
-📦 ztp-homelab/
+📦 ztp-linux-node/
 │
 ├── ⚙️ Deploy-Node.ps1           # Master execution entrypoint
 │

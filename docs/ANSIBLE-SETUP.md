@@ -112,7 +112,7 @@ Add `-vvv` to any failure — it dumps the SSH negotiation and usually names the
 ## Running playbooks
 
 ```bash
-cd /mnt/d/ztp-homelab/ansible
+cd /mnt/d/ztp-linux-node/ansible          # wherever you cloned it, under /mnt/<drive>/
 ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
 ```
 
@@ -132,7 +132,7 @@ Without a key, a new node needs a human to approve it in a browser. With one, ev
 Tailscale admin console → **Settings → Keys → Generate auth key**. Make it **reusable** if you rebuild the VM.
 
 ```bash
-echo 'tskey-auth-...' > /mnt/d/ztp-homelab/ansible/.tailscale_auth_key
+echo 'tskey-auth-...' > ansible/.tailscale_auth_key    # from the repository root
 ```
 
 Gitignored, read automatically, never committed. Treat it as a credential and give it an expiry.
