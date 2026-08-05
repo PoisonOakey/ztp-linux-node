@@ -48,18 +48,16 @@ flowchart TD
     D --> E
 ```
 
-**The split is by concern, not by convenience.** Stages 01-04 provision a machine on a Windows host — creating a VM, driving `diskpart`, mounting media, booting it. That is legitimately PowerShell's job, because it is driving Windows-native tooling.
-
-Everything after that configures a Linux node that is already running, which is Ansible's job. `Deploy-Node.ps1` remains the single entrypoint: it runs the provisioning stages, waits for the unattended install, then hands the running node to `ansible-playbook`. See [ROADMAP.md](docs/ROADMAP.md) for the reasoning, including an honest account of what the migration did *not* buy.
+PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both. The boundary is the tool's job, not the file numbering — [why it matters](docs/ROADMAP.md).
 
 | Layer | Technology | Role |
 |---|---|---|
-| **Hypervisor** | VirtualBox 7+ | Virtualization backend. The node runs headless in normal operation; the OS install attaches a GUI so the installer can be observed. |
-| **Provisioning** | PowerShell | Drives the Windows-native tooling (`VBoxManage`, `diskpart`, `bcdedit`), re-runnable from any state, and fails on a deadline rather than hanging. |
-| **OS Automation** | Cloud-Init / Subiquity | Injected via a temporary virtual disk to pre-answer the Ubuntu installer's prompts. One exception -- Subiquity's destructive-disk confirmation -- is cleared by a keystroke; see [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md). |
-| **Configuration** | Ansible | Declarative desired state for the running node, run from WSL. A second consecutive run reports zero changes. |
-| **Secure Access** | Tailscale | Zero-trust mesh VPN for remote SSH/Web access without router configuration. |
-| **Observability** | Docker / Prometheus / Grafana | Containerized telemetry stack for hardware metrics. |
+| **Hypervisor** | VirtualBox 7+ | Runs the node headless |
+| **Provisioning** | PowerShell | Drives `VBoxManage`, `diskpart`, `bcdedit` |
+| **OS Automation** | Cloud-Init / Subiquity | Unattended install, seeded from a temporary disk |
+| **Configuration** | Ansible | Declarative desired state, run from WSL |
+| **Secure Access** | Tailscale | Mesh VPN, no inbound ports |
+| **Observability** | Docker / Prometheus / Grafana | Metrics scraped from the VM |
 
 ---
 
@@ -89,58 +87,41 @@ Everything after that configures a Linux node that is already running, which is 
 
 ## 🧠 Key Engineering Decisions
 
-| Area | Detail |
+| Decision | Why |
 |---|---|
-| **Single Source of Truth** | `config/node.json` centralizes VM name, RAM, CPU cores, disk size, and ISO URL -- every stage reads the same file instead of carrying its own hardcoded defaults |
-| **Zero-Touch Provisioning** | Cloud-init seeded from a generated FAT32 `CIDATA` disk: `grub_dpkg` pre-answers the bootloader prompt, and the host's SSH public key is rendered into a throwaway copy of `user-data` under the lab directory -- never back into the tracked template, so a real key never enters git |
-| **Network Virtualization** | NAT + `virtio` replaced bridged Wi-Fi, which stalled Docker pulls at ~50% after an hour; ~210-290 Mbps across four samples after the migration (the pre-migration figure was never benchmarked) |
-| **Provisioning vs Configuration** | PowerShell provisions the machine because it drives Windows-native tooling; Ansible configures the running node because that is declarative desired state. Splitting on the tool boundary rather than on file numbering is the point -- stage 04 runs `VBoxManage` and stays PowerShell |
-| **Resilient Orchestration** | Re-runnable from any state: stale VirtualBox media registrations and `known_hosts` pins are cleared before rebuild, the cloud-init disk is detached in a `finally` so a mid-run failure cannot strand a mounted VHD, `$LASTEXITCODE` is checked after every `VBoxManage` call that must succeed, and the install wait-loop fails on a deadline instead of hanging |
-| **Proved, Not Assumed** | Idempotency is verified rather than hoped for -- a second `site.yml` run must report `changed=0`. The generated Grafana password is persisted on the control node precisely so it does not rotate on every run and break that property |
-| **Process Bypasses** | Dynamic `$env:WINDIR\sysnative` bypasses 32-bit Windows redirection for native 64-bit SSH execution |
-| **Zero-Trust Access** | Tailscale mesh VPN enables secure remote access without router port-forwarding. Device approval needs a browser by default; supplying your own reusable auth key makes enrolment unattended. No key ships with this repository |
+| **Provisioning ≠ configuration** | PowerShell drives Windows tooling. Ansible owns desired state. Stage 04 runs `VBoxManage`, so it stays PowerShell |
+| **Idempotency is proved, not claimed** | A second run must report `changed=0`. The Grafana password persists on the control node so it cannot rotate and break that |
+| **Secrets never enter git** | The SSH key renders into a throwaway `user-data`. Grafana and Tailscale credentials stay on the control node, gitignored |
+| **Every run recovers** | Stale media registrations and `known_hosts` pins cleared on rebuild. Mounted VHDs released in a `finally` |
+| **No silent success** | `$LASTEXITCODE` checked after every native call. The install loop fails on a deadline instead of hanging |
+| **NAT over bridged** | Bridged Wi-Fi stalled Docker pulls at ~50% after an hour. NAT + `virtio` measured ~210-290 Mbps |
+
+Each of these came from a failure. The ones with a root-cause writeup are in [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md).
 
 ---
 
 ## ⚡ Execution
 
-### Before the first run
+**Required:** an Ansible control node on WSL **1**. One-time setup — [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md). Miss it and the pipeline provisions the VM, then stops and says so.
 
-**1. Ansible control node (required).** The configuration stages run from WSL, since Ansible has no native Windows control node. This is a one-time setup and it must be **WSL 1**, not WSL 2 — WSL 2 needs the Windows hypervisor, which stage 01 disables so VirtualBox gets direct access to the CPU's virtualization extensions. Full walkthrough in [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md).
-
-If it is missing, the pipeline provisions the VM and then stops with a message saying so. It does not skip configuration silently.
-
-**2. Tailscale auth key (optional).** Without one, a freshly built node cannot join your tailnet unattended — device approval needs a human to open a URL in a browser, so the playbook stops and tells you to run `sudo tailscale up` on the node once.
-
-Supplying a key makes enrolment hands-off on every rebuild. Generate your own:
-
-- Tailscale admin console → **Settings → Keys → Generate auth key**
-- Enable **Reusable** if you intend to rebuild the VM — a one-off key authenticates a single node and then stops working
-- Save it on the control node:
+**Optional:** a Tailscale auth key, for unattended tailnet enrolment. Generate your own (Settings → Keys, **reusable**), then:
 
 ```bash
-echo 'tskey-auth-...' > ansible/.tailscale_auth_key
+echo 'tskey-auth-...' > ansible/.tailscale_auth_key   # gitignored, never committed
 ```
 
-That file is gitignored and stays on your machine. **It is a credential** — it grants the ability to add devices to your tailnet, so give it an expiry and never commit or paste it anywhere. Nothing in this repository ships a key; each user creates their own.
+Without it, approve the device in a browser once. VirtualBox and the ISO are handled by stage 01.
 
-VirtualBox itself needs no preparation — stage 01 installs it via `winget` and downloads the Ubuntu ISO.
-
-### Run it
-
-**Open PowerShell as Administrator** and execute:
+Then, **as Administrator**:
 
 ```powershell
 .\Deploy-Node.ps1
 ```
 
-The orchestrator provisions the VM, waits for the unattended OS install to finish, then hands the running node to `ansible-playbook`. You will be prompted once for the node's `sudo` password.
-
-A second run of the playbook alone should report `changed=0`:
+Prompts once for the node's `sudo` password. Re-running the playbook alone should report `changed=0`:
 
 ```bash
-cd ansible
-ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
+cd ansible && ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
 ```
 
 ---
@@ -159,31 +140,29 @@ ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
 ## 📚 Documentation
 - [CHANGELOG.md](docs/CHANGELOG.md) - Version history and bug fixes.
 - [TROUBLESHOOTING.md](docs/TROUBLESHOOTING.md) - Detailed root-cause analysis for advanced edge cases.
-- [ROADMAP.md](docs/ROADMAP.md) - What is built, what is planned, and what is deliberately out of scope.
+- [ROADMAP.md](docs/ROADMAP.md) - Tracker: what is built, what is next, what is deliberately not being built.
 - [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md) - Control-node prerequisites on Windows, and why WSL 1 rather than WSL 2.
 
 ---
 
 ## ⚙️ CI/CD Pipeline
 
-GitHub Actions runs three jobs in parallel on every push and PR: `PSScriptAnalyzer` plus a `config/node.json` schema check on Windows, `docker compose config` on Ubuntu, and `ansible-playbook --syntax-check` plus `ansible-lint` on Ubuntu.
-
-**All of it is static validation.** It proves the code parses and follows conventions. It does not prove the pipeline provisions a VM, and it does not prove the playbook converges — nothing in CI connects to anything. Convergence is verified by hand: run `site.yml` twice against the node and confirm the second run reports `changed=0`.
-
-Run the same checks locally:
+Three jobs run in parallel on every push and PR. The same checks run locally:
 
 ```powershell
-# 1. Lint PowerShell scripts (same rule set as CI)
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning -ExcludeRule PSUseBOMForUnicodeEncodedFile
 
-# 2. Validate Docker Compose config
 cp monitoring/.env.example monitoring/.env
 docker compose -f monitoring/docker-compose.yml config
 ```
 
 ```bash
-# 3. Validate the Ansible layer (from WSL -- see docs/ANSIBLE-SETUP.md)
 cd ansible
 ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml --syntax-check
 ansible-lint
 ```
+
+CI only reads the code. It never builds a VM or connects to a node, so a green check means the syntax is valid — not that the pipeline works.
+
+> [!IMPORTANT]
+> The real test is running `site.yml` twice. The second run must report `changed=0`.

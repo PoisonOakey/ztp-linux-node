@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 ### Changed
+- **Documentation trimmed.** `README.md` 1,518 -> 946 words and `ANSIBLE-SETUP.md` 1,593 -> 641, with no commands or warnings lost. Both had grown by answering "why" inline instead of linking to the document that already answered it. The CI section in particular described three jobs and then listed the commands that *are* those three jobs; the description is gone and the commands stayed.
+- **`ROADMAP.md` restructured as a tracker.** It had become a retrospective essay about a finished migration -- `Scope` and `Requirements` described planning for work already merged, which is `CHANGELOG.md`'s job. Now three tables: what is Built, what is Planned (R1 the stage 03 timing race, R2 credentials into `ansible-vault`, R3 convergence testing in CI), and what is explicitly Not planned. 1,400 -> 768 words.
 - **README states its prerequisites.** The Execution section previously said only "run `Deploy-Node.ps1`". Anyone cloning the repository would provision a VM and then hit a message about Ansible being missing, with no prior warning that a WSL control node is required. It now covers both prerequisites up front: the WSL 1 control node (and why WSL 1 rather than WSL 2), and the optional Tailscale auth key -- including how to generate your own, why it should be reusable, and that it is a credential to be given an expiry and never committed. No key ships with this repository; each user creates their own.
 
 ### Added
