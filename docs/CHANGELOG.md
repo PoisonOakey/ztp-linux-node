@@ -5,6 +5,11 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [Unreleased]
+### Added
+- **Ansible control-node skeleton (`ansible/`):** `inventory.ini`, `ansible.cfg` and a `site.yml` smoke test, on the `ansible-migration` branch. No roles yet -- this is the wiring only, verified with two consecutive runs reporting `ok=3 changed=0`. Every setting in `ansible.cfg` is confirmed in effect via `ansible-config dump --type all --only-changed`; defaults are deliberately not restated.
+- **`docs/ANSIBLE-SETUP.md` -- running playbooks:** Ansible ignores an `ansible.cfg` found in a world-writable directory, and everything under `/mnt/d` reports mode `0777` to WSL. The resulting failure is misleading: the inventory is never parsed, so the play reports `skipping: no hosts matched` as though the inventory were at fault. Documents the explicit `ANSIBLE_CONFIG` invocation and the `wsl.conf` `automount` alternative.
+
 ## [1.10.0] - 2026-08-05
 ### Fixed
 - **Stages 05 and 06 reported success over failed runs:** both scripts ran their `ssh`/`scp` payload and then printed their success banner unconditionally. `$ErrorActionPreference = 'Stop'` does not apply to native executables, so a failed Tailscale install or a failed `docker compose up` still produced `[OK] Monitoring Stack Deployed!`. Stage 06's payload is a six-command chain, so a failure also gave no indication which step died. Both now check `$LASTEXITCODE` after every remote call and throw with the exit status. This is the same defect fixed in stages 02 and 03 in 1.9.0 -- the fourth hand-written instance, and a large part of the motivation for the Ansible migration in `ROADMAP.md`.

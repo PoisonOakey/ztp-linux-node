@@ -13,3 +13,7 @@ monitoring/.env
 
 # Internal working notes -- not project documentation
 docs/WORK-ORDER.md
+
+# Ansible run artifacts
+*.retry
+ansible/*.log

@@ -172,6 +172,43 @@ Ansible warns that it discovered `/usr/bin/python3.12` and a future install coul
 
 ---
 
+## Running playbooks: `ANSIBLE_CONFIG` is not optional
+
+Ansible refuses to load an `ansible.cfg` from a world-writable directory, on the reasoning that anyone able to write there could hijack the run. Everything under `/mnt/d` reports mode `0777` to Linux, so the repository's `ansible.cfg` is ignored by the normal current-directory discovery:
+
+```
+[WARNING]: Ansible is being run in a world writable directory
+(/mnt/d/ztp-homelab/ansible), ignoring it as an ansible.cfg source.
+```
+
+The failure that follows is misleading rather than obvious — the inventory is never parsed, so the play reports `skipping: no hosts matched` as though the inventory were wrong.
+
+Point at the config file explicitly instead:
+
+```bash
+cd /mnt/d/ztp-homelab/ansible
+ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml
+```
+
+An explicitly named config is honoured regardless of directory permissions.
+
+This is the same root cause as the private key needing a copy into `~/.ssh`: Windows filesystems mounted into WSL cannot express Unix permissions, and tools that check permissions for security reasons reject them. It is worth recognising the shape, because it will keep recurring with any tool that validates file modes.
+
+### Permanent alternative
+
+Mounting the Windows drives with real permission metadata fixes the whole class at once, at the cost of a restart and one privileged edit. Add to `/etc/wsl.conf`:
+
+```ini
+[automount]
+options = "metadata,umask=022,fmask=011"
+```
+
+Then `wsl --shutdown` from PowerShell and relaunch. Files under `/mnt/*` will report `0644` and directories `0755`, and `ansible.cfg` is picked up without the environment variable.
+
+The explicit `ANSIBLE_CONFIG` approach is preferred in this repository because it works on any machine without host-level configuration, which matters more for something another person might clone.
+
+---
+
 ## Persistence
 
 All of the above survives reboots. `wsl.conf`, the pinned resolver, the APT configuration, and the copied key are all on the WSL filesystem. This is a one-time setup, not a per-session ritual.
