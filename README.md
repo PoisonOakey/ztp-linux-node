@@ -35,6 +35,10 @@ Grafana comes up already wired — datasource and dashboard are provisioned from
 
 `node_exporter` stopped on purpose. Prometheus saw the failed scrape, `TargetDown` waited out its `for: 2m` grace period, then fired with the severity and labels defined in [`alert_rules.yml`](monitoring/alert_rules.yml). Four other rules stayed inactive.
 
+![Alert delivered to Discord, firing then resolved](docs/images/discord.png)
+
+Alertmanager delivers it. The same alert firing and then resolving once the container came back — an alert that never closes is as useless as one that never opens. The runbook link is carried on the notification itself, so the fix is one click from the page telling you something is wrong.
+
 ---
 
 ## 🛠️ Architecture & Workflow
@@ -131,6 +135,14 @@ Each of these came from a failure. The ones with a root-cause writeup are in [TR
 > echo 'tskey-auth-...' > ansible/.tailscale_auth_key   # gitignored, never committed
 > ```
 > Without one, approve the device in a browser once.
+
+> [!TIP]
+> **Optional —** a Discord webhook, so firing alerts reach you instead of sitting on a web page.
+> In Discord: a **text** channel → ⚙️ → **Integrations** → **Webhooks** → **New Webhook** → **Copy Webhook URL**, then:
+> ```bash
+> echo 'https://discord.com/api/webhooks/...' > ansible/.discord_webhook_url   # gitignored
+> ```
+> Without one, Alertmanager still groups and silences alerts — it just does not send them anywhere.
 
 VirtualBox and the ISO are handled by stage 01. Then, **as Administrator**:
 
