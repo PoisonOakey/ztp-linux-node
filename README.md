@@ -34,7 +34,7 @@ The hypervisor here is VirtualBox on a Windows host, which makes the provisionin
 
 ## 📸 The Result
 
-One pipeline run, end to end: metrics collected, an alert fired, a human notified.
+After the pipeline finishes, this is what is already running.
 
 ![Grafana Node Overview dashboard](docs/images/dashboard.png)
 
