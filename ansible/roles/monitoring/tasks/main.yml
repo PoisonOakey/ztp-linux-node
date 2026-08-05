@@ -6,8 +6,8 @@
 
 - name: Generate or read the Grafana admin password
   ansible.builtin.set_fact:
-    grafana_admin_password: >-
-      {{ lookup('password', grafana_password_file ~ ' chars=ascii_letters,digits length=' ~ grafana_password_length) }}
+    monitoring_grafana_admin_password: >-
+      {{ lookup('password', monitoring_grafana_password_file ~ ' chars=ascii_letters,digits length=' ~ monitoring_grafana_password_length) }}
   no_log: true
 
 - name: Create the monitoring directory on the node

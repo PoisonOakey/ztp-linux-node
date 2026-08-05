@@ -14,13 +14,15 @@ What is built, what is planned, and what is deliberately not being built. Kept h
 | Connectivity | PowerShell | Done — boots the node, polls the forwarded SSH port |
 | Configuration management | Ansible (from WSL) | Done — three roles, `changed=0` on a second consecutive run |
 | Observability | Docker / Prometheus / Grafana / node_exporter | Done — verified scraping the VM, not the container |
-| CI | GitHub Actions | Static validation only: `PSScriptAnalyzer`, config schema check, `docker compose config` |
+| CI | GitHub Actions | Static validation only: `PSScriptAnalyzer`, config schema check, `docker compose config`, `ansible-playbook --syntax-check`, `ansible-lint` |
 
 ---
 
 ## Done: configuration management moved to Ansible
 
-> **Status.** All three roles exist, `Deploy-Node.ps1` invokes the playbook, and the replaced PowerShell stages are deleted. Two items from the requirements below remain: the README still describes the old layering (requirement not listed here — tracked in the section after this one), and CI does not yet lint the playbook (requirement 7).
+> **Status: complete.** All three roles exist, `Deploy-Node.ps1` invokes the playbook, the replaced PowerShell stages are deleted, the README describes the new layering, and CI lints the playbook. Every requirement below is met.
+>
+> One thing remains unproven: the migration has been verified against an already-provisioned node, not from a wiped VM through a full `Deploy-Node.ps1` run. Until that happens, the `-K` sudo prompt crossing the WSL boundary is the only untested path.
 >
 > The rationale below is kept in the present tense because it is the reasoning a reader should find, not a historical note.
 

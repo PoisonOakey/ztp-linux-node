@@ -6,7 +6,13 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
+### Added
+- **CI validates the Ansible layer:** a third parallel job runs `ansible-playbook --syntax-check` and `ansible-lint`. Added as its own job rather than folded into the Compose job so a failure names its own concern. `ansible/requirements.yml` declares the `community.docker` dependency explicitly -- the Ubuntu `ansible` package bundles it, but CI installs `ansible-core` alone, which does not.
+- **README states what CI does not prove:** all three jobs are static validation. Nothing in CI connects to anything, so it cannot show that the pipeline provisions a VM or that the playbook converges. Convergence is verified by hand, by running `site.yml` twice and confirming `changed=0`.
+
 ### Changed
+- **README describes the current layering:** the workflow diagram now shows three Ansible roles under Configuration Management instead of two PowerShell stages, the layer table distinguishes Provisioning from Configuration, and the repository tree lists `ansible/`. Added a Key Engineering Decisions row for the provisioning/configuration split, since that boundary is the reason the migration happened.
+- **`monitoring` role variables carry the role prefix** (`monitoring_grafana_password_file`, `monitoring_grafana_password_length`, `monitoring_grafana_admin_password`), which `ansible-lint`'s `var-naming[no-role-prefix]` rule requires. The password file path is deliberately unchanged, so the existing generated credential is still read rather than rotated -- confirmed by a subsequent run still reporting `changed=0`.
 - **`Deploy-Node.ps1` hands off to Ansible after stage 04.** Provisioning stops once the node is booted and reachable; configuration is a separate concern and now runs as a playbook. The distro is named explicitly rather than relying on the WSL default, because Docker Desktop registers its own WSL 2 distro and a bare `wsl` invocation would start that instead and fail with `HCS_E_HYPERV_NOT_INSTALLED`. Paths are translated with `wslpath` rather than string surgery on the drive letter, so the repository can move. If WSL or Ansible is unavailable the script fails with an actionable message naming `docs/ANSIBLE-SETUP.md` -- it never skips configuration silently.
 - **Ansible failures are checked like every other native call.** Verified that both failure modes cross the WSL boundary intact: a missing playbook returns exit 1 and a task-level failure returns exit 2, each tripping the guard. A successful run returns 0.
 

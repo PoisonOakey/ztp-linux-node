@@ -16,5 +16,5 @@ monitoring_src: "{{ playbook_dir }}/../monitoring"
 #
 # The file holds a real credential: it stays on the control node, is gitignored,
 # and is never copied to the node in its own right -- only the rendered .env is.
-grafana_password_file: "{{ playbook_dir }}/.grafana_admin_password"
-grafana_password_length: 20
+monitoring_grafana_password_file: "{{ playbook_dir }}/.grafana_admin_password"
+monitoring_grafana_password_length: 20
