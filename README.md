@@ -4,7 +4,7 @@
   <img alt="Tech stack: PowerShell, VirtualBox, cloud-init, Ubuntu, Ansible, Docker, Tailscale, GitHub Actions, Prometheus, Alertmanager, Grafana" src="https://github-readme-tech-stack.vercel.app/api/cards?title=Tech%20Stack&theme=github_dark&align=center&titleAlign=center&width=570&gap=12&lineHeight=8&fontSize=18&hideBg=true&borderRadius=6&border=%2330363d&titleColor=%238b949e&lineCount=3&line1=,PowerShell,auto;virtualbox,VirtualBox,auto;yaml,cloud--init,auto;ubuntu,Ubuntu,auto;&line2=ansible,Ansible,auto;docker,Docker,auto;tailscale,Tailscale,auto;githubactions,GitHub%20Actions,auto;&line3=prometheus,Prometheus,auto;prometheus,Alertmanager,auto;grafana,Grafana,auto;" />
 </p>
 
-> One command takes a bare hypervisor to a Linux node that is installed, configured, monitored, and alerting — with no human input.
+> An Infrastructure as Code pipeline that installs, configures, and monitors a Linux node on a laptop whose broken display rules out the interactive installer.
 
 ---
 
