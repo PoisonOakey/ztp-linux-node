@@ -128,7 +128,7 @@ If you do want the guest's own address for some other reason, log into the conso
 VirtualBox Bridged Networking has a fatal flaw when bridged over modern Wi-Fi adapters (such as Intel Wi-Fi 6 cards). Because a single Wi-Fi station association generally does not allow multiple MAC addresses, VirtualBox employs a MAC-translation workaround that frequently causes massive packet drops. The default `Intel PRO/1000 MT` network emulation exacerbates this.
 
 **Resolution:**
-The architecture was migrated entirely to **NAT**. The VM now securely shares the host's internet connection natively with zero packet drops. The `virtio` paravirtualized network driver was also applied (`--nictype1 virtio`) to maximize throughput. Host access is handled seamlessly via VirtualBox Port Forwarding.
+The architecture was migrated entirely to **NAT**. The VM shares the host's internet connection, and no packet drops were observed after the change. The `virtio` paravirtualized network driver was also applied (`--nictype1 virtio`) to improve throughput. Host access is handled via VirtualBox Port Forwarding.
 
 Measured after the migration: **~210-290 Mbps** (four samples: 294 / 225 / 223 / 212 Mbps), taken from inside the VM against a Cloudflare CDN endpoint, so the figure covers the whole path (guest → NAT → host Wi-Fi → ISP → CDN):
 ```bash
