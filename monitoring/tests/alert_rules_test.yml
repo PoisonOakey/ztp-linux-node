@@ -1,0 +1,200 @@
+# Unit tests for alert_rules.yml, run by `promtool test rules` in CI.
+#
+# `promtool check rules` proves the expressions parse. These prove they fire --
+# and, as importantly, that they stay quiet when they should. Each rule gets a
+# case that should page someone and a case that should not, because a rule that
+# fires on everything is as useless as one that never fires.
+#
+# Series are synthetic and the numbers are small and round: the point is the
+# shape of the data, not realistic byte counts.
+
+rule_files:
+  - ../alert_rules.yml
+
+evaluation_interval: 1m
+
+tests:
+  # --- TargetDown -----------------------------------------------------------
+  # The `for: 2m` is the part worth testing. A scrape that fails once and
+  # recovers must not wake anyone.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="node_exporter", instance="node_exporter:9100"}'
+        values: '1 0 0 0 0 0 0 0'
+    alert_rule_test:
+      - eval_time: 2m
+        alertname: TargetDown
+        exp_alerts: []
+
+      - eval_time: 4m
+        alertname: TargetDown
+        exp_alerts:
+          - exp_labels:
+              severity: critical
+              job: node_exporter
+              instance: node_exporter:9100
+            exp_annotations:
+              runbook_url: "https://github.com/PoisonOakey/ztp-linux-node/blob/main/docs/RUNBOOK.md#targetdown"
+              summary: "node_exporter target is down"
+              description: "node_exporter:9100 has failed scrapes for 2 minutes."
+
+  # A single failed scrape, recovered immediately. Nothing should fire.
+  - interval: 1m
+    input_series:
+      - series: 'up{job="node_exporter", instance="node_exporter:9100"}'
+        values: '1 0 1 1 1 1 1 1'
+    alert_rule_test:
+      - eval_time: 6m
+        alertname: TargetDown
+        exp_alerts: []
+
+  # --- DiskSpaceLow ---------------------------------------------------------
+  # Two filesystems, one at 10% free and one at 50%. Only the first should
+  # produce an alert, and it should carry that mountpoint's labels.
+  - interval: 1m
+    input_series:
+      - series: 'node_filesystem_avail_bytes{job="node_exporter", instance="node_exporter:9100", device="/dev/sda2", fstype="ext4", mountpoint="/"}'
+        values: '10+0x10'
+      - series: 'node_filesystem_size_bytes{job="node_exporter", instance="node_exporter:9100", device="/dev/sda2", fstype="ext4", mountpoint="/"}'
+        values: '100+0x10'
+      - series: 'node_filesystem_avail_bytes{job="node_exporter", instance="node_exporter:9100", device="/dev/sda3", fstype="ext4", mountpoint="/home"}'
+        values: '50+0x10'
+      - series: 'node_filesystem_size_bytes{job="node_exporter", instance="node_exporter:9100", device="/dev/sda3", fstype="ext4", mountpoint="/home"}'
+        values: '100+0x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: DiskSpaceLow
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: node_exporter
+              instance: node_exporter:9100
+              device: /dev/sda2
+              fstype: ext4
+              mountpoint: /
+            exp_annotations:
+              runbook_url: "https://github.com/PoisonOakey/ztp-linux-node/blob/main/docs/RUNBOOK.md#diskspacelow"
+              summary: "Less than 15% disk free on /"
+              description: "node_exporter:9100 / is at 10% free."
+
+  # tmpfs sits near-full as a matter of course and is excluded by the fstype
+  # matcher. If that matcher is ever dropped, this test fails.
+  - interval: 1m
+    input_series:
+      - series: 'node_filesystem_avail_bytes{job="node_exporter", instance="node_exporter:9100", device="tmpfs", fstype="tmpfs", mountpoint="/run"}'
+        values: '1+0x10'
+      - series: 'node_filesystem_size_bytes{job="node_exporter", instance="node_exporter:9100", device="tmpfs", fstype="tmpfs", mountpoint="/run"}'
+        values: '100+0x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: DiskSpaceLow
+        exp_alerts: []
+
+  # --- DiskWillFillIn24Hours ------------------------------------------------
+  # The rule this test file exists for. A disk draining steadily should fire
+  # well before it is full...
+  - interval: 1m
+    input_series:
+      - series: 'node_filesystem_avail_bytes{job="node_exporter", instance="node_exporter:9100", device="/dev/sda2", fstype="ext4", mountpoint="/"}'
+        values: '10000000-100000x90'
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: DiskWillFillIn24Hours
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: node_exporter
+              instance: node_exporter:9100
+              device: /dev/sda2
+              fstype: ext4
+              mountpoint: /
+            exp_annotations:
+              runbook_url: "https://github.com/PoisonOakey/ztp-linux-node/blob/main/docs/RUNBOOK.md#diskwillfillin24hours"
+              summary: "/ will fill within 24 hours"
+              description: "Based on the last hour, node_exporter:9100 / runs out of space within a day."
+
+  # ...and a disk sitting at 80% full and not moving should never fire, which is
+  # the whole reason this is predict_linear rather than a threshold.
+  - interval: 1m
+    input_series:
+      - series: 'node_filesystem_avail_bytes{job="node_exporter", instance="node_exporter:9100", device="/dev/sda2", fstype="ext4", mountpoint="/"}'
+        values: '2000000+0x90'
+    alert_rule_test:
+      - eval_time: 60m
+        alertname: DiskWillFillIn24Hours
+        exp_alerts: []
+
+  # --- MemoryPressure -------------------------------------------------------
+  - interval: 1m
+    input_series:
+      - series: 'node_memory_MemAvailable_bytes{job="node_exporter", instance="node_exporter:9100"}'
+        values: '5+0x10'
+      - series: 'node_memory_MemTotal_bytes{job="node_exporter", instance="node_exporter:9100"}'
+        values: '100+0x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: MemoryPressure
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: node_exporter
+              instance: node_exporter:9100
+            exp_annotations:
+              runbook_url: "https://github.com/PoisonOakey/ztp-linux-node/blob/main/docs/RUNBOOK.md#memorypressure"
+              summary: "Less than 10% memory available"
+              description: "node_exporter:9100 has 5% memory available."
+
+  # 40% available. Free memory on a healthy Linux host looks alarming; available
+  # memory does not, and this rule reads the second.
+  - interval: 1m
+    input_series:
+      - series: 'node_memory_MemAvailable_bytes{job="node_exporter", instance="node_exporter:9100"}'
+        values: '40+0x10'
+      - series: 'node_memory_MemTotal_bytes{job="node_exporter", instance="node_exporter:9100"}'
+        values: '100+0x10'
+    alert_rule_test:
+      - eval_time: 8m
+        alertname: MemoryPressure
+        exp_alerts: []
+
+  # --- HighCpuLoad ----------------------------------------------------------
+  # Two cores and a load of 10 is 5 per core, over the threshold of 2.
+  - interval: 1m
+    input_series:
+      - series: 'node_load15{job="node_exporter", instance="node_exporter:9100"}'
+        values: '10+0x20'
+      - series: 'node_cpu_seconds_total{job="node_exporter", instance="node_exporter:9100", cpu="0", mode="idle"}'
+        values: '0+1x20'
+      - series: 'node_cpu_seconds_total{job="node_exporter", instance="node_exporter:9100", cpu="1", mode="idle"}'
+        values: '0+1x20'
+    alert_rule_test:
+      - eval_time: 18m
+        alertname: HighCpuLoad
+        exp_alerts:
+          - exp_labels:
+              severity: warning
+              job: node_exporter
+              instance: node_exporter:9100
+            exp_annotations:
+              runbook_url: "https://github.com/PoisonOakey/ztp-linux-node/blob/main/docs/RUNBOOK.md#highcpuload"
+              summary: "15-minute load average above 2 per core"
+              description: "node_exporter:9100 load15 is 5.00 per core."
+
+  # The same absolute load on four cores is 2.5... still over. Three on four
+  # cores is 0.75, which is a busy node rather than a broken one.
+  - interval: 1m
+    input_series:
+      - series: 'node_load15{job="node_exporter", instance="node_exporter:9100"}'
+        values: '3+0x20'
+      - series: 'node_cpu_seconds_total{job="node_exporter", instance="node_exporter:9100", cpu="0", mode="idle"}'
+        values: '0+1x20'
+      - series: 'node_cpu_seconds_total{job="node_exporter", instance="node_exporter:9100", cpu="1", mode="idle"}'
+        values: '0+1x20'
+      - series: 'node_cpu_seconds_total{job="node_exporter", instance="node_exporter:9100", cpu="2", mode="idle"}'
+        values: '0+1x20'
+      - series: 'node_cpu_seconds_total{job="node_exporter", instance="node_exporter:9100", cpu="3", mode="idle"}'
+        values: '0+1x20'
+    alert_rule_test:
+      - eval_time: 18m
+        alertname: HighCpuLoad
+        exp_alerts: []

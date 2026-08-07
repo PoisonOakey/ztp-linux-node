@@ -116,12 +116,14 @@ The split follows tool boundaries, not file order — stage 04 drives `VBoxManag
 ├── 📁 config/                   # Single source of truth: VM name, hardware sizing, ISO URL
 │
 ├── 📁 scripts/                  # 01-04: provision the machine (PowerShell)
-│   └── 📁 cloud-init/           # Unattended Ubuntu autoinstall configuration
+│   ├── 📁 cloud-init/           # Unattended Ubuntu autoinstall configuration
+│   └── 📁 tests/                # Pester tests for Get-LabConfig
 │
 ├── 📁 ansible/                  # Configure the running node (docker, tailscale, monitoring)
 │
 ├── 📁 monitoring/               # Observability configuration
-│   └── 🐳 docker-compose.yml    # Prometheus & Grafana stack
+│   ├── 🐳 docker-compose.yml    # Prometheus & Grafana stack
+│   └── 📁 tests/                # promtool unit tests for the alert rules
 │
 ├── 📁 docs/                     # Changelog, troubleshooting, roadmap, Ansible setup
 │
@@ -217,10 +219,11 @@ cat ansible/.grafana_admin_password
 
 ## ⚙️ CI/CD Pipeline
 
-Four jobs run in parallel on every push and PR. The same checks run locally:
+Five jobs run in parallel on every push and PR. The same checks run locally:
 
 ```powershell
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning -ExcludeRule PSUseBOMForUnicodeEncodedFile
+Invoke-Pester -Path scripts/tests
 
 # config/node.json is read by every stage -- a missing key fails at provision time, not parse time
 $c = Get-Content config/node.json -Raw | ConvertFrom-Json
@@ -238,16 +241,22 @@ ansible-lint
 ```
 
 ```bash
-# The observability config -- validated with the same binaries the stack runs
+# The observability config, checked with the versions pinned in docker-compose.yml
 docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" --entrypoint promtool \
-  prom/prometheus:latest check config /etc/prometheus/prometheus.yml
+  prom/prometheus:v3.13.2 check config /etc/prometheus/prometheus.yml
 docker run --rm -v "$PWD/monitoring/alertmanager:/cfg:ro" --entrypoint amtool \
-  prom/alertmanager:latest check-config /cfg/alertmanager.yml.example
+  prom/alertmanager:v0.33.1 check-config /cfg/alertmanager.yml.example
+
+# Behaviour, not syntax: synthetic series driven through the rules
+docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" --entrypoint promtool \
+  prom/prometheus:v3.13.2 test rules /etc/prometheus/tests/alert_rules_test.yml
+
+docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.30.1 detect --source=/repo --redact
 ```
 
-The fourth job also parses `scripts/cloud-init/user-data` and the Grafana dashboard, and asserts that every alert has a `## ` section in [RUNBOOK.md](docs/RUNBOOK.md) that its `runbook_url` actually anchors to.
+`config-validate` also renders `alertmanager.yml.j2` and checks both branches of it, parses `scripts/cloud-init/user-data` and the Grafana dashboard, and asserts that every alert has a `## ` section in [RUNBOOK.md](docs/RUNBOOK.md) that its `runbook_url` actually anchors to.
 
-CI only reads the code. It never builds a VM or connects to a node, so a green check means the syntax is valid — not that the pipeline works.
+CI reads the code and exercises the alert rules against synthetic data. It never builds a VM or connects to a node, so a green check means the configuration is valid and the rules fire as intended — not that the pipeline provisions anything.
 
 > [!IMPORTANT]
 > The real test is running `site.yml` twice. The second run must report `changed=0`.

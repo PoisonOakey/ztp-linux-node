@@ -39,6 +39,20 @@ jobs:
           }
           Write-Output "config/node.json is valid."
 
+      # Get-LabConfig is the only script in scripts/ with logic rather than side
+      # effects, and every stage calls it. The rest wrap VBoxManage, diskpart and
+      # bcdedit, where a unit test would only be testing its own mocks.
+      - name: Run Pester tests
+        shell: powershell
+        run: |
+          Install-Module -Name Pester -Force -Scope CurrentUser -SkipPublisherCheck -MinimumVersion 5.0.0
+          Import-Module Pester -MinimumVersion 5.0.0
+          $result = Invoke-Pester -Path scripts/tests -Output Detailed -PassThru
+          if ($result.FailedCount -gt 0) {
+            Write-Error "$($result.FailedCount) Pester test(s) failed."
+            exit 1
+          }
+
   compose-config:
     runs-on: ubuntu-latest
     steps:
@@ -76,6 +90,26 @@ jobs:
       - name: Lint roles and playbook
         run: ansible-lint
 
+  # Three credentials live beside this repository -- the Grafana password, the
+  # Tailscale key and the Discord webhook -- kept out of it by .gitignore alone.
+  # A `git add -f`, a renamed file or a path typo defeats that silently, and a
+  # credential is public the moment it is pushed. Scans history, not just the
+  # working tree, because the damage is done at the commit, not the merge.
+  secrets:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          # gitleaks walks the commit graph; the default shallow clone would
+          # leave everything but the tip unscanned.
+          fetch-depth: 0
+
+      - name: Scan history for committed secrets
+        run: |
+          docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.30.1 \
+            detect --source=/repo --redact --no-banner
+
   # The configuration files the other three jobs never open: the Prometheus
   # scrape config and alert rules, the Alertmanager config, the cloud-init
   # autoinstall file, and the Grafana dashboard.
@@ -110,6 +144,15 @@ jobs:
           docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" \
             --entrypoint promtool prom/prometheus:v3.13.2 \
             check rules /etc/prometheus/alert_rules.yml
+
+      # Behaviour, not syntax. `check rules` proves the expressions parse; these
+      # drive synthetic series through them and assert which alerts fire, when,
+      # and with what labels -- including the cases that must stay quiet.
+      - name: Test the alert rules against synthetic series
+        run: |
+          docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" \
+            --entrypoint promtool prom/prometheus:v3.13.2 \
+            test rules /etc/prometheus/tests/alert_rules_test.yml
 
       # The committed example, which documents the shape without the credential.
       - name: Check the Alertmanager example config
