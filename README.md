@@ -50,6 +50,8 @@ flowchart TD
 
 PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both. The Observe lane is what keeps running afterwards, with a [runbook](docs/RUNBOOK.md) behind every alert.
 
+The split follows tool boundaries, not file order — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. Ansible owns the rest for failure reporting and provable idempotency, not scale. There is one node.
+
 Provisioning is Windows-specific by design — VirtualBox on a Windows host. Configuration is not: the Ansible roles target any Debian-family host.
 
 ---
@@ -83,22 +85,6 @@ Alertmanager delivers the alert, then the resolved notice once the container ret
 
 ---
 
-## 🛠️ Architecture & Workflow
-
-The split follows tool boundaries, not file order — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. Ansible owns the rest for failure reporting and provable idempotency, not scale. There is one node.
-
-| Layer | Technology | Role |
-|---|---|---|
-| **Hypervisor** | VirtualBox 7+ | Runs the node headless |
-| **Provisioning** | PowerShell | Drives `VBoxManage`, `diskpart`, `bcdedit` |
-| **OS Automation** | Cloud-Init / Subiquity | Unattended install, seeded from a temporary disk |
-| **Configuration** | Ansible | Declarative desired state, run from WSL |
-| **Secure Access** | Tailscale | Mesh VPN, no inbound ports |
-| **Observability** | Prometheus / Grafana / node_exporter | Host metrics from the VM, dashboard provisioned as code |
-| **Alerting** | Prometheus rules / Alertmanager | Five rules, grouped and routed to Discord, each linked to a [runbook](docs/RUNBOOK.md) |
-
----
-
 ## 📂 Repository Structure
 
 ```text
@@ -129,7 +115,7 @@ The split follows tool boundaries, not file order — stage 04 drives `VBoxManag
 
 | Decision | Why |
 |---|---|
-| **Provisioning ≠ configuration** | PowerShell drives Windows tooling. Ansible owns desired state. Stage 04 runs `VBoxManage`, so it stays PowerShell |
+| **Provisioning ≠ configuration** | PowerShell drives `VBoxManage`, `diskpart` and `bcdedit`. Ansible owns desired state. Stage 04 runs `VBoxManage`, so it stays PowerShell |
 | **Idempotency is proved, not claimed** | A second run must report `changed=0`. The Grafana password persists on the control node so it cannot rotate and break that |
 | **Secrets never enter git** | The SSH key renders into a throwaway `user-data`. Grafana and Tailscale credentials stay on the control node, gitignored |
 | **Every run recovers** | Stale media registrations and `known_hosts` pins cleared on rebuild. Mounted VHDs released in a `finally` |
@@ -153,7 +139,7 @@ Both optional, both gitignored, both written once:
 | **Tailscale key** — unattended tailnet enrolment<br>Settings → Keys, **reusable** | `echo 'tskey-auth-...' > ansible/.tailscale_auth_key` | Approve the device in a browser once |
 | **Discord webhook** — alerts reach you, not a web page<br>Text channel → ⚙️ → Integrations → Webhooks | `echo 'https://discord.com/api/webhooks/...' > ansible/.discord_webhook_url` | Alerts still group and silence, they just go nowhere |
 
-VirtualBox and the ISO are handled by stage 01. Then, **as Administrator**:
+VirtualBox 7+ and the ISO are handled by stage 01. Then, **as Administrator**:
 
 ```powershell
 .\Deploy-Node.ps1
