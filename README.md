@@ -10,49 +10,7 @@
 
 ## 🚀 Overview
 
-Infrastructure as Code across four layers, each owned by the tool that should own it:
-
-| Layer | What happens |
-|---|---|
-| **Provision** | PowerShell drives the hypervisor, disk and boot media. Fails on a deadline rather than hanging |
-| **Install** | cloud-init installs Ubuntu unattended from a generated seed disk, SSH key injected at build time |
-| **Configure** | Ansible converges the node — Docker, monitoring, then Tailscale. A second run reports zero changes |
-| **Observe** | Prometheus scrapes the host, Grafana is provisioned as code, five alert rules route through Alertmanager to a [runbook](docs/RUNBOOK.md) |
-
-Provisioning is Windows-specific by design — VirtualBox on a Windows host. Configuration is not: the Ansible roles target any Debian-family host.
-
----
-
-## 🛑 The Problem
-
-| Problem | Why it matters |
-|---|---|
-| ⌨️ **Interactive OS install** | The Ubuntu installer prompts for disk, bootloader, and credentials before networking exists. |
-| 🖱️ **VM defined through a GUI** | Specs set in the VirtualBox wizard are not versioned, reviewable, or repeatable. |
-| 🔓 **Inbound access** | Reaching SSH from outside the LAN requires a router port-forward to the VM. |
-| 📉 **No metric history** | VirtualBox reports point-in-time figures, readable only at the host's screen. |
-
----
-
-## 📸 The Result
-
-After the pipeline finishes, this is what is already running.
-
-![Grafana Node Overview dashboard](docs/images/dashboard.png)
-
-Datasource and dashboard are provisioned from this repository, never clicked in. Panels mirror the alert rules, so what is watched and what pages you are the same signals.
-
-![TargetDown alert firing in Prometheus](docs/images/alert-firing.png)
-
-`node_exporter` stopped on purpose. `TargetDown` waited out its `for: 2m` grace period, then fired with the labels defined in [`alert_rules.yml`](monitoring/alert_rules.yml). The other four rules stayed quiet.
-
-![Alert delivered to Discord, firing then resolved](docs/images/discord.png)
-
-Alertmanager delivers the alert, then the resolved notice once the container returns. The runbook link rides on the notification itself.
-
----
-
-## 🛠️ Architecture & Workflow
+Infrastructure as Code across four layers, each owned by the tool that should own it.
 
 ```mermaid
 %%{init: {'themeVariables': { 'background': '#ffffff'}}}%%
@@ -90,7 +48,42 @@ flowchart TD
     F --> H
 ```
 
-PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both. The Observe lane is what keeps running afterwards.
+PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both. The Observe lane is what keeps running afterwards, with a [runbook](docs/RUNBOOK.md) behind every alert.
+
+Provisioning is Windows-specific by design — VirtualBox on a Windows host. Configuration is not: the Ansible roles target any Debian-family host.
+
+---
+
+## 🛑 The Problem
+
+| Problem | Why it matters |
+|---|---|
+| ⌨️ **Interactive OS install** | The Ubuntu installer prompts for disk, bootloader, and credentials before networking exists. |
+| 🖱️ **VM defined through a GUI** | Specs set in the VirtualBox wizard are not versioned, reviewable, or repeatable. |
+| 🔓 **Inbound access** | Reaching SSH from outside the LAN requires a router port-forward to the VM. |
+| 📉 **No metric history** | VirtualBox reports point-in-time figures, readable only at the host's screen. |
+
+---
+
+## 📸 The Result
+
+After the pipeline finishes, this is what is already running.
+
+![Grafana Node Overview dashboard](docs/images/dashboard.png)
+
+Datasource and dashboard are provisioned from this repository, never clicked in. Panels mirror the alert rules, so what is watched and what pages you are the same signals.
+
+![TargetDown alert firing in Prometheus](docs/images/alert-firing.png)
+
+`node_exporter` stopped on purpose. `TargetDown` waited out its `for: 2m` grace period, then fired with the labels defined in [`alert_rules.yml`](monitoring/alert_rules.yml). The other four rules stayed quiet.
+
+![Alert delivered to Discord, firing then resolved](docs/images/discord.png)
+
+Alertmanager delivers the alert, then the resolved notice once the container returns. The runbook link rides on the notification itself.
+
+---
+
+## 🛠️ Architecture & Workflow
 
 The split follows tool boundaries, not file order — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. Ansible owns the rest for failure reporting and provable idempotency, not scale. There is one node.
 
