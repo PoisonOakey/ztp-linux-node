@@ -211,20 +211,21 @@ cat ansible/.grafana_admin_password
 
 ## ⚙️ CI/CD Pipeline
 
-GitHub Actions runs six gates on every push and PR, across five parallel jobs — lint and the unit tests share a Windows runner. All must pass.
+Seven gates on every push and PR, in five parallel jobs. All must pass.
 
 | Gate | What it checks |
 | :--- | :--- |
-| **Lint** | `Invoke-ScriptAnalyzer` over every script, and that `config/node.json` carries each key the stages read. |
-| **Unit tests** | `Pester` against `Get-LabConfig` — the missing-file error, `$HOME` expansion, and that the numeric fields stay numbers rather than strings `VBoxManage` rejects. |
-| **Compose** | `docker compose config` on the monitoring stack, rendered against `.env.example`. |
-| **Ansible** | `ansible-playbook --syntax-check` and `ansible-lint` across the playbook and all three roles. |
-| **Secret scan** | `gitleaks` across the full commit history, not just the tip — a credential is public at the commit, not the merge. |
-| **Config & alert rules** | `promtool` and `amtool`, run from the image versions pinned in `docker-compose.yml`. The Alertmanager config is checked as *rendered* from its template, both with and without a webhook. The alert rules are driven through synthetic series to prove they fire when they should and stay quiet when they should not. Also parses `cloud-init/user-data` and the Grafana dashboard, and asserts every alert has a section in [RUNBOOK.md](docs/RUNBOOK.md) its `runbook_url` anchors to. |
+| **Lint** | `Invoke-ScriptAnalyzer` over every script, and that `config/node.json` has every key the stages read |
+| **Unit tests** | `Pester` against `Get-LabConfig`, the one script with logic rather than side effects |
+| **Compose** | `docker compose config` against `.env.example` |
+| **Ansible** | `--syntax-check` and `ansible-lint` over the playbook and all three roles |
+| **Secret scan** | `gitleaks` across the full history, not just the tip |
+| **Observability config** | `promtool` and `amtool` over the Prometheus and Alertmanager configs, cloud-init, the dashboard, and the [runbook](docs/RUNBOOK.md) links |
+| **Alert behaviour** | Synthetic series driven through the five rules: each must fire when it should, and stay quiet when it should not |
 
-Dependency updates are proposed monthly by Dependabot, for GitHub Actions and the pinned monitoring images.
+Dependabot proposes updates monthly, for Actions and the pinned images.
 
-The two gates worth running before you push:
+Worth running before you push:
 
 ```powershell
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning -ExcludeRule PSUseBOMForUnicodeEncodedFile
