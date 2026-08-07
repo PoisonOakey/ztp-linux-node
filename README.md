@@ -14,10 +14,10 @@ Infrastructure as Code across four layers, each owned by the tool that should ow
 
 | Layer | What happens |
 |---|---|
-| **Provision** | PowerShell drives the hypervisor, disk and boot media. Idempotent, exit-code checked, fails on a deadline rather than hanging |
-| **Install** | cloud-init performs an unattended Ubuntu install from a generated seed disk, with the operator's SSH key injected at build time |
-| **Configure** | Ansible brings the running node to desired state — Docker, a monitoring stack, then Tailscale. A second run reports zero changes |
-| **Observe** | Prometheus scrapes the host, Grafana is provisioned as code, and five alert rules route through Alertmanager to a human with a [runbook](docs/RUNBOOK.md) attached |
+| **Provision** | PowerShell drives the hypervisor, disk and boot media. Fails on a deadline rather than hanging |
+| **Install** | cloud-init installs Ubuntu unattended from a generated seed disk, SSH key injected at build time |
+| **Configure** | Ansible converges the node — Docker, monitoring, then Tailscale. A second run reports zero changes |
+| **Observe** | Prometheus scrapes the host, Grafana is provisioned as code, five alert rules route through Alertmanager to a [runbook](docs/RUNBOOK.md) |
 
 The hypervisor here is VirtualBox on a Windows host, which makes the provisioning layer platform-specific by design. The configuration layer is not: the Ansible roles target any Debian-family host, and only the inventory is lab-specific.
 
