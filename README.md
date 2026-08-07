@@ -6,6 +6,8 @@
 
 <p align="center">
   <a href="https://github.com/PoisonOakey/ztp-linux-node/actions/workflows/ci.yml"><img alt="CI status" src="https://github.com/PoisonOakey/ztp-linux-node/actions/workflows/ci.yml/badge.svg?branch=main" /></a>
+  <a href="LICENSE"><img alt="License: MIT" src="https://img.shields.io/github/license/PoisonOakey/ztp-linux-node" /></a>
+  <img alt="Last commit" src="https://img.shields.io/github/last-commit/PoisonOakey/ztp-linux-node" />
 </p>
 
 > A PowerShell, cloud-init, and Ansible IaC pipeline that installs, configures, and monitors a headless Linux node from a single command — no installer prompts, no hypervisor wizard.
