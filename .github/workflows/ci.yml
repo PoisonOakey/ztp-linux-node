@@ -11,7 +11,7 @@ jobs:
     runs-on: windows-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Run PSScriptAnalyzer
         shell: powershell
@@ -57,7 +57,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Validate Docker Compose Configuration
         run: |
@@ -76,7 +76,7 @@ jobs:
         working-directory: ansible
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       - name: Install ansible-core and ansible-lint
         run: pip install --disable-pip-version-check ansible-core ansible-lint
@@ -99,7 +99,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
         with:
           # gitleaks walks the commit graph; the default shallow clone would
           # leave everything but the tip unscanned.
@@ -125,7 +125,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7
 
       # Follows rule_files, so it validates alert_rules.yml through the same
       # path Prometheus does at startup. The image tag matches the one pinned in
