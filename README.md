@@ -153,20 +153,12 @@ Each of these came from a failure. The ones with a root-cause writeup are in [TR
 > **Required —** an Ansible control node on WSL **1**. One-time setup: [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md).
 > Miss it and the pipeline provisions the VM, then stops and says so.
 
-> [!TIP]
-> **Optional —** a Tailscale auth key, for unattended tailnet enrolment. Generate your own (Settings → Keys, **reusable**), then:
-> ```bash
-> echo 'tskey-auth-...' > ansible/.tailscale_auth_key   # gitignored, never committed
-> ```
-> Without one, approve the device in a browser once.
+Both optional, both gitignored, both written once:
 
-> [!TIP]
-> **Optional —** a Discord webhook, so firing alerts reach you instead of sitting on a web page.
-> In Discord: a **text** channel → ⚙️ → **Integrations** → **Webhooks** → **New Webhook** → **Copy Webhook URL**, then:
-> ```bash
-> echo 'https://discord.com/api/webhooks/...' > ansible/.discord_webhook_url   # gitignored
-> ```
-> Without one, Alertmanager still groups and silences alerts — it just does not send them anywhere.
+| Optional | Write it | Skip it |
+|---|---|---|
+| **Tailscale key** — unattended tailnet enrolment<br>Settings → Keys, **reusable** | `echo 'tskey-auth-...' > ansible/.tailscale_auth_key` | Approve the device in a browser once |
+| **Discord webhook** — alerts reach you, not a web page<br>Text channel → ⚙️ → Integrations → Webhooks | `echo 'https://discord.com/api/webhooks/...' > ansible/.discord_webhook_url` | Alerts still group and silence, they just go nowhere |
 
 VirtualBox and the ISO are handled by stage 01. Then, **as Administrator**:
 
@@ -189,7 +181,7 @@ cd ansible && ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
 | **Alertmanager** | http://localhost:9093 — grouped alerts and silences |
 | **SSH** | `ssh -p 2222 sysadmin@127.0.0.1` |
 
-The Grafana password is generated on the first run and reused after that. It lives on your machine only — gitignored, never in the repo:
+The Grafana password is generated once, then reused. It stays on your machine, gitignored:
 
 ```bash
 cat ansible/.grafana_admin_password
@@ -201,7 +193,7 @@ cat ansible/.grafana_admin_password
 
 | Metric | Manual Provisioning | Automated Pipeline |
 |---|---|---|
-| **Time to provision** | 20-30 minutes, interactive (est.) | 3 min 53 s to a booted OS; 7 min 35 s for the full pipeline including Tailscale and the monitoring stack (single end-to-end run, 2 vCPU / 4 GB guest) |
+| **Time to provision** | 20-30 min, interactive (est.) | 3 min 53 s to a booted OS, 7 min 35 s end-to-end (single run, 2 vCPU / 4 GB) |
 | **Reproducibility** | Undocumented manual steps | Single command against `config/node.json` |
 | **Remote access** | Router port forwarding | Tailscale mesh VPN, zero inbound ports |
 | **Host visibility** | No history, host screen only | `node_exporter` scraped every 15s, viewable from any device on the tailnet |
