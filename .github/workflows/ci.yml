@@ -75,3 +75,116 @@ jobs:
 
       - name: Lint roles and playbook
         run: ansible-lint
+
+  # The configuration files the other three jobs never open: the Prometheus
+  # scrape config and alert rules, the Alertmanager config, the cloud-init
+  # autoinstall file, and the Grafana dashboard.
+  #
+  # These are grouped because they share a failure mode. None of them crashes
+  # anything when it is wrong -- a malformed alert rule is simply a rule that
+  # never fires, and an unresolvable datasource uid is a dashboard that renders
+  # empty panels. Nothing surfaces until the incident the rule existed to catch.
+  #
+  # promtool and amtool come from the same images the stack runs, so the
+  # validators are the versions that will actually read these files.
+  config-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # Follows rule_files, so it validates alert_rules.yml through the same
+      # path Prometheus does at startup.
+      - name: Check the Prometheus scrape config
+        run: |
+          docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" \
+            --entrypoint promtool prom/prometheus:latest \
+            check config /etc/prometheus/prometheus.yml
+
+      # Also checked directly, so the rules stay validated if they are ever
+      # detached from prometheus.yml.
+      - name: Check the alert rules
+        run: |
+          docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" \
+            --entrypoint promtool prom/prometheus:latest \
+            check rules /etc/prometheus/alert_rules.yml
+
+      # The file that ships to the node is rendered from alertmanager.yml.j2 with
+      # the webhook injected, and cannot be checked here. The .example tracks the
+      # same structure without the credential, so it stands in for it.
+      - name: Check the Alertmanager config
+        run: |
+          docker run --rm -v "$PWD/monitoring/alertmanager:/cfg:ro" \
+            --entrypoint amtool prom/alertmanager:latest \
+            check-config /cfg/alertmanager.yml.example
+
+      - name: Install PyYAML
+        run: pip install --disable-pip-version-check pyyaml
+
+      - name: Check cloud-init, the dashboard, and the runbook links
+        run: |
+          python - <<'PY'
+          import json
+          import pathlib
+          import re
+          import sys
+
+          import yaml
+
+          failures = []
+
+          # The autoinstall file. A break here is not caught until minutes into an
+          # unattended install, so parse it and assert the keys Subiquity needs.
+          user_data = yaml.safe_load(pathlib.Path("scripts/cloud-init/user-data").read_text())
+          autoinstall = (user_data or {}).get("autoinstall")
+          if not isinstance(autoinstall, dict):
+              failures.append("user-data: no autoinstall section")
+          else:
+              for key in ("version", "identity", "ssh", "storage"):
+                  if key not in autoinstall:
+                      failures.append(f"user-data: missing autoinstall.{key}")
+
+          # The dashboard, and the datasource uid it is coupled to. The uid is
+          # fixed in the provisioning file precisely because the dashboard JSON
+          # hardcodes it; nothing but this check keeps the two in step.
+          dashboard_path = pathlib.Path("monitoring/grafana/dashboards/node-overview.json")
+          dashboard = dashboard_path.read_text()
+          try:
+              json.loads(dashboard)
+          except json.JSONDecodeError as exc:
+              failures.append(f"node-overview.json: {exc}")
+
+          datasource = yaml.safe_load(
+              pathlib.Path("monitoring/grafana/provisioning/datasources/prometheus.yml").read_text()
+          )
+          uid = datasource["datasources"][0]["uid"]
+          if f'"uid": "{uid}"' not in dashboard:
+              failures.append(
+                  f"datasource uid '{uid}' is not referenced by node-overview.json -- "
+                  "its panels will not resolve a datasource"
+              )
+
+          # Every alert needs a runbook section, and its runbook_url has to anchor
+          # to that section. Both sides are hand-maintained, in different files.
+          rules = yaml.safe_load(pathlib.Path("monitoring/alert_rules.yml").read_text())
+          runbook = pathlib.Path("docs/RUNBOOK.md").read_text()
+          headings = set(re.findall(r"^## (.+)$", runbook, re.M))
+          alerts = [rule for group in rules["groups"] for rule in group["rules"]]
+
+          for rule in alerts:
+              name = rule["alert"]
+              if name not in headings:
+                  failures.append(f"{name}: no '## {name}' section in docs/RUNBOOK.md")
+              url = rule.get("annotations", {}).get("runbook_url", "")
+              if not url.endswith(f"#{name.lower()}"):
+                  failures.append(f"{name}: runbook_url does not anchor to #{name.lower()}")
+
+          if failures:
+              print("\n".join(f"FAIL: {failure}" for failure in failures))
+              sys.exit(1)
+
+          print(
+              f"OK: user-data, dashboard, datasource uid '{uid}', "
+              f"{len(alerts)} alerts linked to the runbook"
+          )
+          PY

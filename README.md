@@ -12,7 +12,7 @@
 
 Infrastructure as Code across four layers, each owned by the tool that should own it:
 
-| | |
+| Layer | What happens |
 |---|---|
 | **Provision** | PowerShell drives the hypervisor, disk and boot media. Idempotent, exit-code checked, fails on a deadline rather than hanging |
 | **Install** | cloud-init performs an unattended Ubuntu install from a generated seed disk, with the operator's SSH key injected at build time |
@@ -25,12 +25,12 @@ The hypervisor here is VirtualBox on a Windows host, which makes the provisionin
 
 ## 🛑 The Problem
 
-| | | |
-|---|---|---|
-| ⌨️ | **The installer waits for a human** | Disk, bootloader, and credentials are all prompted for before networking exists. |
-| 🖱️ | **The wizard leaves no record** | VM specs clicked into VirtualBox aren't versioned, reviewable, or repeatable. |
-| 🔓 | **Remote access means opening a port** | Reaching SSH from outside the LAN needs a router port-forward to the VM. |
-| 📉 | **Metrics don't persist** | VirtualBox's numbers keep no history, and are readable only at the host's screen. |
+| Problem | Why it matters |
+|---|---|
+| ⌨️ **Interactive OS install** | The Ubuntu installer prompts for disk, bootloader, and credentials before networking exists. |
+| 🖱️ **VM defined through a GUI** | Specs set in the VirtualBox wizard are not versioned, reviewable, or repeatable. |
+| 🔓 **Inbound access** | Reaching SSH from outside the LAN requires a router port-forward to the VM. |
+| 📉 **No metric history** | VirtualBox reports point-in-time figures, readable only at the host's screen. |
 
 ---
 
@@ -180,7 +180,7 @@ cd ansible && ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
 
 ### Access
 
-| | |
+| Service | Endpoint |
 |---|---|
 | **Grafana** | http://localhost:3000 — user `admin`, dashboard already provisioned |
 | **Prometheus** | http://localhost:9090 — `/targets` for scrape health, `/alerts` for rule state |
@@ -217,7 +217,7 @@ cat ansible/.grafana_admin_password
 
 ## ⚙️ CI/CD Pipeline
 
-Three jobs run in parallel on every push and PR. The same checks run locally:
+Four jobs run in parallel on every push and PR. The same checks run locally:
 
 ```powershell
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning -ExcludeRule PSUseBOMForUnicodeEncodedFile
@@ -236,6 +236,16 @@ cd ansible
 ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml --syntax-check
 ansible-lint
 ```
+
+```bash
+# The observability config -- validated with the same binaries the stack runs
+docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" --entrypoint promtool \
+  prom/prometheus:latest check config /etc/prometheus/prometheus.yml
+docker run --rm -v "$PWD/monitoring/alertmanager:/cfg:ro" --entrypoint amtool \
+  prom/alertmanager:latest check-config /cfg/alertmanager.yml.example
+```
+
+The fourth job also parses `scripts/cloud-init/user-data` and the Grafana dashboard, and asserts that every alert has a `## ` section in [RUNBOOK.md](docs/RUNBOOK.md) that its `runbook_url` actually anchors to.
 
 CI only reads the code. It never builds a VM or connects to a node, so a green check means the syntax is valid — not that the pipeline works.
 
