@@ -222,6 +222,11 @@ Three jobs run in parallel on every push and PR. The same checks run locally:
 ```powershell
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning -ExcludeRule PSUseBOMForUnicodeEncodedFile
 
+# config/node.json is read by every stage -- a missing key fails at provision time, not parse time
+$c = Get-Content config/node.json -Raw | ConvertFrom-Json
+@('vm_name','lab_dir','iso_url','ram_mb','cpu_cores','disk_size_mb') |
+    Where-Object { -not $c.PSObject.Properties.Name.Contains($_) }
+
 cp monitoring/.env.example monitoring/.env
 docker compose -f monitoring/docker-compose.yml config
 ```
