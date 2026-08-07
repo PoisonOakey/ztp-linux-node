@@ -122,45 +122,49 @@ Each of these came from a failure. The ones with a root-cause writeup are in [TR
 
 ---
 
-## ⚡ Execution
+## 🔧 Prerequisites
 
 > [!IMPORTANT]
-> **Required —** an Ansible control node on WSL **1**. One-time setup: [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md).
-> Miss it and the pipeline provisions the VM, then stops and says so.
+> An Ansible control node on **WSL 1**. One-time setup: [ANSIBLE-SETUP.md](docs/ANSIBLE-SETUP.md).
+> Without it the pipeline provisions the VM, then stops and says so.
 
-Both optional, both gitignored, both written once:
+VirtualBox 7+ and the Ubuntu ISO are handled by stage 01 — nothing to install by hand.
 
-| Optional | Write it | Skip it |
-|---|---|---|
-| **Tailscale key** — unattended tailnet enrolment<br>Settings → Keys, **reusable** | `echo 'tskey-auth-...' > ansible/.tailscale_auth_key` | Approve the device in a browser once |
-| **Discord webhook** — alerts reach you, not a web page<br>Text channel → ⚙️ → Integrations → Webhooks | `echo 'https://discord.com/api/webhooks/...' > ansible/.discord_webhook_url` | Alerts still group and silence, they just go nowhere |
+### Optional credentials
 
-VirtualBox 7+ and the ISO are handled by stage 01. Then, **as Administrator**:
-
-```powershell
-.\Deploy-Node.ps1
-```
-
-Prompts once for the node's `sudo` password. Re-running the playbook alone should report `changed=0`:
+| File | Get it from | Without it |
+| :--- | :--- | :--- |
+| `ansible/.tailscale_auth_key` | Tailscale → Settings → Keys, **reusable** | Approve the device in a browser once |
+| `ansible/.discord_webhook_url` | Discord → text channel → ⚙️ → Integrations → Webhooks | Alerts still group and silence, they just go nowhere |
 
 ```bash
-cd ansible && ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
+echo 'tskey-auth-...' > ansible/.tailscale_auth_key
+echo 'https://discord.com/api/webhooks/...' > ansible/.discord_webhook_url
 ```
+
+Both are read from the control node once and are gitignored.
+
+---
+
+## ⚡ Execution
+
+1. Open PowerShell **as Administrator**.
+2. Run `.\Deploy-Node.ps1`. It prompts once for the node's `sudo` password.
+3. Prove convergence — the second run must report `changed=0`:
+   ```bash
+   cd ansible && ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml -K
+   ```
 
 ### Access
 
 | Service | Endpoint |
-|---|---|
+| :--- | :--- |
 | **Grafana** | http://localhost:3000 — user `admin`, dashboard already provisioned |
 | **Prometheus** | http://localhost:9090 — `/targets` for scrape health, `/alerts` for rule state |
 | **Alertmanager** | http://localhost:9093 — grouped alerts and silences |
 | **SSH** | `ssh -p 2222 sysadmin@127.0.0.1` |
 
-The Grafana password is generated once, then reused. It stays on your machine, gitignored:
-
-```bash
-cat ansible/.grafana_admin_password
-```
+The Grafana password is generated once and reused — `cat ansible/.grafana_admin_password`, gitignored.
 
 ---
 
