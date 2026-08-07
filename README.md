@@ -19,9 +19,9 @@ flowchart TD
     classDef conf fill:#e6ffe6,stroke:#009933,stroke-width:2px,color:#004d1a,rx:5px,ry:5px;
     classDef obs fill:#fff4e6,stroke:#cc6600,stroke-width:2px,color:#663300,rx:5px,ry:5px;
 
-    style Provisioning fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5
-    style Configuration fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5
-    style Observability fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5
+    style Provisioning fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5,color:#333
+    style Configuration fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5,color:#333
+    style Observability fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5,color:#333
 
     subgraph Provisioning [Provision &amp; Install -- PowerShell, cloud-init]
         direction LR
