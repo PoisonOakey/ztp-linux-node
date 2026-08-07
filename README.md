@@ -92,7 +92,7 @@ flowchart TD
 
 PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both. The third lane is not a stage — it is what keeps running after the playbook exits.
 
-The split follows tool boundaries, not file order — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. Ansible earned the second half after one bug — a native command failing while PowerShell printed a success banner — was patched by hand in four separate scripts. A play halts at the failing task and names it: failure reporting and provable idempotency, not scale. There is one node.
+The split follows tool boundaries, not file order — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. Ansible owns the rest for failure reporting and provable idempotency, not scale. There is one node.
 
 | Layer | Technology | Role |
 |---|---|---|
