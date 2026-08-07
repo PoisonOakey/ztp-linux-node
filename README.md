@@ -246,7 +246,7 @@ docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" --entrypoint promtool \
 
 The rest are one-liners in [`ci.yml`](.github/workflows/ci.yml), which is the copy that matters.
 
-CI reads the code and exercises the alert rules against synthetic data. It never builds a VM or connects to a node, so a green check means the configuration is valid and the rules behave as intended — not that the pipeline provisions anything.
+CI never builds a VM or connects to a node. A green check means the config is valid and the rules behave — not that the pipeline provisions anything.
 
 > [!IMPORTANT]
 > The real test is running `site.yml` twice. The second run must report `changed=0`.
