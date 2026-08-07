@@ -18,6 +18,10 @@ docs/WORK-ORDER.md
 *.retry
 ansible/*.log
 
+# Scratch output from the CI config-validate job, if it is run locally
+.ci-render.yml
+.ci-rendered/
+
 # Credentials that live on the control node only, never in the repository
 ansible/.grafana_admin_password
 ansible/.tailscale_auth_key

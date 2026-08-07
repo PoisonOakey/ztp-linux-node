@@ -1,6 +1,11 @@
+# Image tags are pinned, not `latest`. CI validates prometheus.yml and
+# alert_rules.yml with promtool from these exact versions, and `latest` would
+# mean the node pulls something the checks never saw. Upgrades arrive as
+# Dependabot pull requests -- see .github/dependabot.yml -- so a version bump is
+# a reviewable commit rather than a silent change on the next `compose up`.
 services:
   prometheus:
-    image: prom/prometheus:latest
+    image: prom/prometheus:v3.13.2
     container_name: prometheus
     volumes:
       - ./prometheus.yml:/etc/prometheus/prometheus.yml
@@ -13,7 +18,7 @@ services:
     restart: unless-stopped
 
   alertmanager:
-    image: prom/alertmanager:latest
+    image: prom/alertmanager:v0.33.1
     container_name: alertmanager
     volumes:
       # Rendered by the Ansible monitoring role -- it carries the Discord webhook
@@ -25,7 +30,7 @@ services:
     restart: unless-stopped
 
   node_exporter:
-    image: prom/node-exporter:latest
+    image: prom/node-exporter:v1.12.1
     container_name: node_exporter
     restart: unless-stopped
     pid: host
@@ -44,7 +49,7 @@ services:
       - "9100:9100"
 
   grafana:
-    image: grafana/grafana:latest
+    image: grafana/grafana:13.1.3
     container_name: grafana
     ports:
       - "3000:3000"

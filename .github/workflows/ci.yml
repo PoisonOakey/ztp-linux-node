@@ -94,11 +94,13 @@ jobs:
         uses: actions/checkout@v4
 
       # Follows rule_files, so it validates alert_rules.yml through the same
-      # path Prometheus does at startup.
+      # path Prometheus does at startup. The image tag matches the one pinned in
+      # docker-compose.yml, so this is the promtool that ships with the
+      # Prometheus these files are actually loaded by.
       - name: Check the Prometheus scrape config
         run: |
           docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" \
-            --entrypoint promtool prom/prometheus:latest \
+            --entrypoint promtool prom/prometheus:v3.13.2 \
             check config /etc/prometheus/prometheus.yml
 
       # Also checked directly, so the rules stay validated if they are ever
@@ -106,17 +108,59 @@ jobs:
       - name: Check the alert rules
         run: |
           docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" \
-            --entrypoint promtool prom/prometheus:latest \
+            --entrypoint promtool prom/prometheus:v3.13.2 \
             check rules /etc/prometheus/alert_rules.yml
 
-      # The file that ships to the node is rendered from alertmanager.yml.j2 with
-      # the webhook injected, and cannot be checked here. The .example tracks the
-      # same structure without the credential, so it stands in for it.
-      - name: Check the Alertmanager config
+      # The committed example, which documents the shape without the credential.
+      - name: Check the Alertmanager example config
         run: |
           docker run --rm -v "$PWD/monitoring/alertmanager:/cfg:ro" \
-            --entrypoint amtool prom/alertmanager:latest \
+            --entrypoint amtool prom/alertmanager:v0.33.1 \
             check-config /cfg/alertmanager.yml.example
+
+      - name: Install ansible-core
+        run: pip install --disable-pip-version-check ansible-core
+
+      # The file the node actually runs is rendered from alertmanager.yml.j2, and
+      # checking only the example leaves the template free to drift away from it.
+      # Both branches are rendered: with a webhook, the config routes to Discord;
+      # without one it routes to the 'null' receiver, which is what a fresh clone
+      # gets. A template valid in one branch and broken in the other would
+      # otherwise be found by a crash-looping container on the node.
+      - name: Render and check both branches of the Alertmanager template
+        run: |
+          mkdir -p .ci-rendered
+          # Written into the workspace rather than /tmp: template `src` is
+          # resolved relative to the playbook's own directory, so a playbook in
+          # /tmp cannot see the repository.
+          cat > .ci-render.yml <<'YML'
+          - hosts: localhost
+            connection: local
+            gather_facts: false
+            tasks:
+              - name: Render with a webhook configured
+                ansible.builtin.template:
+                  src: ansible/roles/monitoring/templates/alertmanager.yml.j2
+                  dest: "{{ playbook_dir }}/.ci-rendered/with-webhook.yml"
+                  mode: "0644"
+                vars:
+                  monitoring_discord_webhook: https://discord.com/api/webhooks/0/ci-render-check
+
+              - name: Render with no webhook configured
+                ansible.builtin.template:
+                  src: ansible/roles/monitoring/templates/alertmanager.yml.j2
+                  dest: "{{ playbook_dir }}/.ci-rendered/no-webhook.yml"
+                  mode: "0644"
+                vars:
+                  monitoring_discord_webhook: ""
+          YML
+          ansible-playbook .ci-render.yml
+          for branch in with-webhook no-webhook; do
+            echo "--- $branch ---"
+            docker run --rm -v "$PWD/.ci-rendered:/cfg:ro" \
+              --entrypoint amtool prom/alertmanager:v0.33.1 \
+              check-config "/cfg/$branch.yml"
+          done
 
       - name: Install PyYAML
         run: pip install --disable-pip-version-check pyyaml

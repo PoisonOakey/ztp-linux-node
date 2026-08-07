@@ -1,0 +1,22 @@
+version: 2
+
+# Image tags in monitoring/docker-compose.yml are pinned so CI and the node run
+# the same versions. Pinning without an update path just means running an old
+# Prometheus forever, so upgrades arrive here as reviewable pull requests.
+updates:
+  - package-ecosystem: docker-compose
+    directory: /monitoring
+    schedule:
+      interval: monthly
+    open-pull-requests-limit: 4
+    commit-message:
+      prefix: "deps"
+
+  # The actions pinned in .github/workflows/ci.yml -- actions/checkout and the
+  # like -- age the same way.
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: monthly
+    commit-message:
+      prefix: "ci"

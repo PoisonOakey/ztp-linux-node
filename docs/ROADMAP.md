@@ -16,7 +16,7 @@ What is built, what is next, what is deliberately not being built. History lives
 | Observability | Prometheus / Grafana / node_exporter | ✅ Verified scraping the VM, not the container |
 | Alerting | Prometheus rules / Alertmanager | ✅ Five rules, grouped and routed to Discord, each linked to a runbook |
 | Remote access | Tailscale | ✅ Unattended with a pre-authorised key |
-| CI | GitHub Actions | ⚠️ Static validation only — R3 |
+| CI | GitHub Actions | ⚠️ Four jobs, static validation only — R3, R4 |
 
 ---
 
@@ -26,7 +26,8 @@ What is built, what is next, what is deliberately not being built. History lives
 |---|---|---|---|
 | **R1** | Pass `autoinstall` on the kernel command line | Stage 03 clears Subiquity's disk prompt with a 90 s sleep and a blind keystroke. On a slow disk it types into the void | Rebuilding the ISO with a patched `grub.cfg` — needs `xorriso` or ADK `oscdimg` |
 | **R2** | Move credentials to `ansible-vault` | The Grafana password and Tailscale key are plaintext on the control node | — |
-| **R3** | Test convergence in CI | CI never connects to a node, so a green check cannot show the playbook works | A runner with nested virtualization |
+| **R3** | Test convergence in CI, against a QEMU guest | CI never connects to a node, so a green check cannot show the playbook converges | Nothing external. GitHub's Linux runners expose `/dev/kvm`, so nested virtualisation is no longer the obstacle it was when this was written. VirtualBox still cannot run there, so the test would boot an Ubuntu cloud image under QEMU and run `site.yml` against it twice. That covers the Ansible half only — stages 01-04 drive Windows tooling and stay verified by hand |
+| **R4** | `promtool test rules` | The alert rules are checked for syntax in CI, not for behaviour. Nothing proves `DiskWillFillIn24Hours` fires when a disk is actually filling, or that `for: 2m` holds | Nothing. Synthetic series in a test file, no node required |
 
 ---
 
