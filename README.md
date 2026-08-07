@@ -19,7 +19,7 @@ Infrastructure as Code across four layers, each owned by the tool that should ow
 | **Configure** | Ansible converges the node — Docker, monitoring, then Tailscale. A second run reports zero changes |
 | **Observe** | Prometheus scrapes the host, Grafana is provisioned as code, five alert rules route through Alertmanager to a [runbook](docs/RUNBOOK.md) |
 
-The hypervisor here is VirtualBox on a Windows host, which makes the provisioning layer platform-specific by design. The configuration layer is not: the Ansible roles target any Debian-family host, and only the inventory is lab-specific.
+Provisioning is Windows-specific by design — VirtualBox on a Windows host. Configuration is not: the Ansible roles target any Debian-family host.
 
 ---
 
@@ -48,7 +48,7 @@ Datasource and dashboard are provisioned from this repository, never clicked in.
 
 ![Alert delivered to Discord, firing then resolved](docs/images/discord.png)
 
-Alertmanager delivers the alert, then the resolved notice once the container returns. An alert that never closes is as useless as one that never opens. The runbook link is carried on the notification itself.
+Alertmanager delivers the alert, then the resolved notice once the container returns. The runbook link rides on the notification itself.
 
 ---
 
@@ -90,7 +90,7 @@ flowchart TD
     F --> H
 ```
 
-PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both. The third lane is not a stage — it is what keeps running after the playbook exits.
+PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both. The Observe lane is what keeps running afterwards.
 
 The split follows tool boundaries, not file order — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. Ansible owns the rest for failure reporting and provable idempotency, not scale. There is one node.
 
