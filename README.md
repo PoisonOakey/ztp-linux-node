@@ -219,44 +219,34 @@ cat ansible/.grafana_admin_password
 
 ## ⚙️ CI/CD Pipeline
 
-Five jobs run in parallel on every push and PR. The same checks run locally:
+GitHub Actions runs six gates on every push and PR, across five parallel jobs — lint and the unit tests share a Windows runner. All must pass.
+
+| Gate | What it checks |
+| :--- | :--- |
+| **Lint** | `Invoke-ScriptAnalyzer` over every script, and that `config/node.json` carries each key the stages read. |
+| **Unit tests** | `Pester` against `Get-LabConfig` — the missing-file error, `$HOME` expansion, and that the numeric fields stay numbers rather than strings `VBoxManage` rejects. |
+| **Compose** | `docker compose config` on the monitoring stack, rendered against `.env.example`. |
+| **Ansible** | `ansible-playbook --syntax-check` and `ansible-lint` across the playbook and all three roles. |
+| **Secret scan** | `gitleaks` across the full commit history, not just the tip — a credential is public at the commit, not the merge. |
+| **Config & alert rules** | `promtool` and `amtool`, run from the image versions pinned in `docker-compose.yml`. The Alertmanager config is checked as *rendered* from its template, both with and without a webhook. The alert rules are driven through synthetic series to prove they fire when they should and stay quiet when they should not. Also parses `cloud-init/user-data` and the Grafana dashboard, and asserts every alert has a section in [RUNBOOK.md](docs/RUNBOOK.md) its `runbook_url` anchors to. |
+
+Dependency updates are proposed monthly by Dependabot, for GitHub Actions and the pinned monitoring images.
+
+The two gates worth running before you push:
 
 ```powershell
 Invoke-ScriptAnalyzer -Path . -Recurse -Severity Error,Warning -ExcludeRule PSUseBOMForUnicodeEncodedFile
 Invoke-Pester -Path scripts/tests
-
-# config/node.json is read by every stage -- a missing key fails at provision time, not parse time
-$c = Get-Content config/node.json -Raw | ConvertFrom-Json
-@('vm_name','lab_dir','iso_url','ram_mb','cpu_cores','disk_size_mb') |
-    Where-Object { -not $c.PSObject.Properties.Name.Contains($_) }
-
-cp monitoring/.env.example monitoring/.env
-docker compose -f monitoring/docker-compose.yml config
 ```
 
 ```bash
-cd ansible
-ANSIBLE_CONFIG=$PWD/ansible.cfg ansible-playbook site.yml --syntax-check
-ansible-lint
-```
-
-```bash
-# The observability config, checked with the versions pinned in docker-compose.yml
-docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" --entrypoint promtool \
-  prom/prometheus:v3.13.2 check config /etc/prometheus/prometheus.yml
-docker run --rm -v "$PWD/monitoring/alertmanager:/cfg:ro" --entrypoint amtool \
-  prom/alertmanager:v0.33.1 check-config /cfg/alertmanager.yml.example
-
-# Behaviour, not syntax: synthetic series driven through the rules
 docker run --rm -v "$PWD/monitoring:/etc/prometheus:ro" --entrypoint promtool \
   prom/prometheus:v3.13.2 test rules /etc/prometheus/tests/alert_rules_test.yml
-
-docker run --rm -v "$PWD:/repo:ro" zricethezav/gitleaks:v8.30.1 detect --source=/repo --redact
 ```
 
-`config-validate` also renders `alertmanager.yml.j2` and checks both branches of it, parses `scripts/cloud-init/user-data` and the Grafana dashboard, and asserts that every alert has a `## ` section in [RUNBOOK.md](docs/RUNBOOK.md) that its `runbook_url` actually anchors to.
+The rest are one-liners in [`ci.yml`](.github/workflows/ci.yml), which is the copy that matters.
 
-CI reads the code and exercises the alert rules against synthetic data. It never builds a VM or connects to a node, so a green check means the configuration is valid and the rules fire as intended — not that the pipeline provisions anything.
+CI reads the code and exercises the alert rules against synthetic data. It never builds a VM or connects to a node, so a green check means the configuration is valid and the rules behave as intended — not that the pipeline provisions anything.
 
 > [!IMPORTANT]
 > The real test is running `site.yml` twice. The second run must report `changed=0`.
