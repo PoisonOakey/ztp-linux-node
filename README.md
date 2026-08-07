@@ -4,7 +4,7 @@
   <img alt="Tech stack: PowerShell, VirtualBox, cloud-init, Ubuntu, Ansible, Docker, Tailscale, GitHub Actions, Prometheus, Alertmanager, Grafana" src="https://github-readme-tech-stack.vercel.app/api/cards?title=Tech%20Stack&theme=github_dark&align=center&titleAlign=center&width=570&gap=12&lineHeight=8&fontSize=18&hideBg=true&borderRadius=6&border=%2330363d&titleColor=%238b949e&lineCount=3&line1=,PowerShell,auto;virtualbox,VirtualBox,auto;yaml,cloud--init,auto;ubuntu,Ubuntu,auto;&line2=ansible,Ansible,auto;docker,Docker,auto;tailscale,Tailscale,auto;githubactions,GitHub%20Actions,auto;&line3=prometheus,Prometheus,auto;prometheus,Alertmanager,auto;grafana,Grafana,auto;" />
 </p>
 
-> A PowerShell, cloud-init, and Ansible IaC pipeline that installs, configures, and monitors a Linux node on a laptop whose broken display rules out the interactive installer.
+> A PowerShell, cloud-init, and Ansible IaC pipeline that installs, configures, and monitors a headless Linux node from a single command — no installer prompts, no hypervisor wizard.
 
 ---
 
@@ -16,7 +16,7 @@ Infrastructure as Code across four layers, each owned by the tool that should ow
 |---|---|
 | **Provision** | PowerShell drives the hypervisor, disk and boot media. Idempotent, exit-code checked, fails on a deadline rather than hanging |
 | **Install** | cloud-init performs an unattended Ubuntu install from a generated seed disk, with the operator's SSH key injected at build time |
-| **Configure** | Ansible brings the running node to desired state — Docker, Tailscale, and a monitoring stack. A second run reports zero changes |
+| **Configure** | Ansible brings the running node to desired state — Docker, a monitoring stack, then Tailscale. A second run reports zero changes |
 | **Observe** | Prometheus scrapes the host, Grafana is provisioned as code, and five alert rules route through Alertmanager to a human with a [runbook](docs/RUNBOOK.md) attached |
 
 The hypervisor here is VirtualBox on a Windows host, which makes the provisioning layer platform-specific by design. The configuration layer is not: the Ansible roles target any Debian-family host, and only the inventory is lab-specific.
@@ -25,10 +25,12 @@ The hypervisor here is VirtualBox on a Windows host, which makes the provisionin
 
 ## 🛑 The Problem
 
-- **Broken display:** The Ubuntu installer prompts for disk, bootloader, and credentials before networking exists — none answerable on this machine.
-- **GUI provisioning:** VM specs set through the VirtualBox wizard aren't versioned, reviewable, or repeatable.
-- **Inbound access:** Reaching SSH from outside the LAN requires a router port-forward to the VM.
-- **Hypervisor-side monitoring:** VirtualBox's metrics keep no history and can only be read at the host's screen.
+| | | |
+|---|---|---|
+| ⌨️ | **The installer waits for a human** | Disk, bootloader, and credentials are all prompted for before networking exists. |
+| 🖱️ | **The wizard leaves no record** | VM specs clicked into VirtualBox aren't versioned, reviewable, or repeatable. |
+| 🔓 | **Remote access means opening a port** | Reaching SSH from outside the LAN needs a router port-forward to the VM. |
+| 📉 | **Metrics don't persist** | VirtualBox's numbers keep no history, and are readable only at the host's screen. |
 
 ---
 
@@ -57,27 +59,38 @@ Alertmanager delivers the alert, then the resolved notice once the container ret
 flowchart TD
     classDef prov fill:#e6f3ff,stroke:#0066cc,stroke-width:2px,color:#003366,rx:5px,ry:5px;
     classDef conf fill:#e6ffe6,stroke:#009933,stroke-width:2px,color:#004d1a,rx:5px,ry:5px;
-    
+    classDef obs fill:#fff4e6,stroke:#cc6600,stroke-width:2px,color:#663300,rx:5px,ry:5px;
+
     style Provisioning fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5
     style Configuration fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5
+    style Observability fill:#ffffff,stroke:#dee2e6,stroke-width:2px,stroke-dasharray: 5 5
 
-    subgraph Provisioning [Infrastructure Provisioning]
+    subgraph Provisioning [Provision &amp; Install -- PowerShell, cloud-init]
         direction LR
         A[01: Host Prep]:::prov --> B[02: VM Provisioning]:::prov
         B --> C[03: OS Installation]:::prov
         C --> D[04: Boot &amp; Await SSH]:::prov
     end
 
-    subgraph Configuration [Configuration Management -- Ansible]
+    subgraph Configuration [Configure -- Ansible]
         direction LR
-        E[docker role]:::conf --> F[tailscale role]:::conf
-        F --> G[monitoring role]:::conf
+        E[docker role]:::conf --> F[monitoring role]:::conf
+        F --> G[tailscale role]:::conf
+    end
+
+    subgraph Observability [Observe -- left running on the node]
+        direction LR
+        H[node_exporter]:::obs --> I["Prometheus<br/>5 alert rules"]:::obs
+        I --> J[Grafana dashboard]:::obs
+        I --> K[Alertmanager]:::obs
+        K --> L["Discord<br/>+ runbook link"]:::obs
     end
 
     D --> E
+    F --> H
 ```
 
-PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both.
+PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both. The third lane is not a stage — it is what keeps running after the playbook exits.
 
 The split follows tool boundaries, not file order — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. Ansible earned the second half after one bug — a native command failing while PowerShell printed a success banner — was patched by hand in four separate scripts. A play halts at the failing task and names it: failure reporting and provable idempotency, not scale. There is one node.
 
