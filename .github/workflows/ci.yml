@@ -68,7 +68,7 @@ jobs:
   # follows conventions -- it does NOT prove it converges against a real node.
   # Nothing here connects to anything. Convergence is verified by running
   # site.yml twice against the VM and confirming the second run reports
-  # changed=0; see docs/ROADMAP.md.
+  # changed=0; see docs/FUTURE-ROADMAP.md.
   ansible:
     runs-on: ubuntu-latest
     defaults:
