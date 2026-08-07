@@ -48,10 +48,6 @@ flowchart TD
     F --> H
 ```
 
-PowerShell provisions the machine. Ansible configures it. `Deploy-Node.ps1` runs both. The Observe lane is what keeps running afterwards, with a [runbook](docs/RUNBOOK.md) behind every alert.
-
-The split follows tool boundaries, not file order — stage 04 drives `VBoxManage`, so it stays PowerShell despite running last. Ansible owns the rest for failure reporting and provable idempotency, not scale. There is one node.
-
 Provisioning is Windows-specific by design — VirtualBox on a Windows host. Configuration is not: the Ansible roles target any Debian-family host.
 
 ---
